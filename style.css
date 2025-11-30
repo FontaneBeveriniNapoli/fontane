@@ -22,54 +22,41 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* --- GESTIONE SCHERMATE (IL FIX FONDAMENTALE) --- */
-.app-container { width: 100%; min-height: 100vh; position: relative; }
+/* --- GESTIONE SCHERMATE --- */
+.app-container { max-width: 100%; margin: 0 auto; min-height: 100vh; position: relative; }
 
-/* Di base tutte le schermate sono NASCOSTE */
-.screen { 
-    display: none !important; 
-    min-height: 100vh; 
-    width: 100%; 
-    position: relative; 
-    padding-bottom: 80px; 
-}
-
-/* Solo la schermata attiva è VISIBILE */
-.screen.active { 
-    display: block !important; 
-    animation: fadeIn 0.3s ease; 
-}
-
-/* Eccezione per la Home: quando è attiva deve essere FLEX per centrare tutto */
-#home-screen.active {
-    display: flex !important;
-}
+/* Logica Nascondi/Mostra */
+.screen { display: none !important; min-height: 100vh; width: 100%; position: relative; padding-bottom: 80px; }
+.screen.active { display: block !important; animation: fadeIn 0.4s ease; }
+#home-screen.active { display: flex !important; } /* Fondamentale per la centratura Home */
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
 
 /* --- HOME SCREEN --- */
 #home-screen {
     background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
-                url('./images/sfondo-home.jpg');
+                url('./images/sfondo-home.jpg'); /* LOCALE */
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
-    /* Flexbox per centratura perfetta */
+    /* Flexbox originale */
     flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 30px 20px;
-    text-align: center; /* Forza il testo al centro */
+    min-height: 100vh;
 }
 
 .logo-container {
     margin-bottom: 25px;
+    text-align: left;
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: center; /* Centra i loghi orizzontalmente */
+    justify-content: center; /* Centrato come screenshot */
     gap: 20px;
     width: 100%;
+    /* Rimosso max-width restrittivo che avevo messo */
 }
 
 .app-logo, .comune-logo {
@@ -84,60 +71,65 @@ body {
 .app-logo { 
     background-image: url('./images/logo-app.png');
     background-color: white; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     border: 3px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    padding: 6px;
 }
 
 .comune-logo { 
-    background-image: url('./images/logo-comune.png'); 
-    background-color: transparent;
+    background-image: url('./images/logo-comune.png');
+    background-color: transparent; /* Trasparente */
     opacity: 0.9;
-    transform: scale(1.1);
+    transform: scale(1.1); /* Leggermente più grande */
 }
 
 .home-title {
-    color: white; font-size: 2.2rem; font-weight: 700; text-align: center;
-    margin-bottom: 12px; text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-    width: 100%;
+    color: white; font-size: 1.8rem; font-weight: 700; text-align: center;
+    margin-bottom: 12px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); width: 100%;
 }
 
-/* FIX PER IL SOTTOTITOLO */
 .home-subtitle {
-    color: rgba(255, 255, 255, 0.95);
-    font-size: 1rem;
-    font-weight: 400;
-    text-align: center; /* Centrato */
-    line-height: 1.5;
-    max-width: 600px;
-    margin: 0 auto 40px auto; /* Centrato orizzontalmente */
-    text-shadow: 0 1px 5px rgba(0,0,0,0.5);
+    color: rgba(255, 255, 255, 0.9); font-size: 0.9rem; font-weight: 400;
+    text-align: center; line-height: 1.5; max-width: 320px;
+    margin-bottom: 20px; text-shadow: 0 1px 5px rgba(0,0,0,0.3);
 }
 
 /* BOTTONI HOME */
-.home-buttons { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 16px; margin: 0 auto; }
+.home-buttons { 
+    width: 100%; 
+    max-width: 380px; /* Base Mobile */
+    display: flex; flex-direction: column; gap: 16px; 
+}
+
 .button-row { display: flex; gap: 16px; width: 100%; }
+
 .home-btn {
     flex: 1;
     background: rgba(255, 255, 255, 0.15);
     color: white;
     border: 2px solid rgba(255, 255, 255, 0.4);
     border-radius: 18px;
-    padding: 20px 10px;
+    padding: 16px 12px;
     font-size: 0.95rem; font-weight: 600; cursor: pointer;
     text-align: center; transition: all 0.3s ease;
     backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 8px; min-height: 100px;
+    gap: 8px; position: relative; overflow: hidden;
+    min-height: 85px; /* Altezza originale */
 }
-.home-btn:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.25); }
-.home-btn:active { transform: scale(0.98); }
+
+.home-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+.home-btn:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.25); }
 
 .btn-icon {
-    font-size: 1.8rem; width: 50px; height: 50px;
+    font-size: 1.6rem; width: 48px; height: 48px;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(255, 255, 255, 0.25); border-radius: 14px; margin-bottom: 5px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 14px; flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
+/* Colori specifici pulsanti */
 .fontane-btn { border-left: 4px solid var(--primary-blue); }
 .fontane-btn .btn-icon { color: var(--primary-blue); border: 2px solid rgba(59, 130, 246, 0.5); }
 .beverini-btn { border-left: 4px solid var(--primary-green); }
@@ -147,69 +139,144 @@ body {
 .news-btn { border-left: 4px solid var(--primary-orange); }
 .news-btn .btn-icon { color: var(--primary-orange); border: 2px solid rgba(245, 158, 11, 0.5); }
 
-/* TAB BAR */
+/* --- TAB BAR INFERIORE (STILE ORIGINALE) --- */
 .tab-bar {
     position: fixed; bottom: 0; left: 0; right: 0;
-    background: white; border-top: 1px solid #e5e7eb;
-    display: flex; height: 65px; z-index: 1000;
-    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--card-bg);
+    display: flex; padding: 8px 15px;
+    border-top: 1px solid #e5e7eb;
+    z-index: 1000; height: 60px;
 }
-.tab-btn {
-    flex: 1; background: none; border: none;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    cursor: pointer; color: var(--light-text); font-size: 0.75rem; gap: 4px;
-}
-.tab-btn.active { color: var(--primary-blue); font-weight: 600; }
-.tab-icon { font-size: 1.2rem; }
 
-/* HEADER PAGINE */
-.app-header { padding: 50px 20px 20px; color: white; text-align: center; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+.tab-btn {
+    flex: 1; background: none; border: none; padding: 6px 8px; text-align: center;
+    cursor: pointer; border-radius: 10px; font-size: 0.75rem; color: var(--light-text);
+    display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 44px;
+}
+
+.tab-btn.active { color: white; }
+.tab-btn.active[data-target="home-screen"] { background: var(--primary-blue); }
+.tab-btn.active[data-target="fontane-screen"] { background: var(--primary-blue); }
+.tab-btn.active[data-target="beverini-screen"] { background: var(--primary-green); }
+.tab-btn.active[data-target="mappa-screen"] { background: var(--primary-purple); }
+.tab-btn.active[data-target="news-screen"] { background: var(--primary-orange); }
+
+.tab-icon { font-size: 1.1rem; transition: all 0.3s ease; filter: grayscale(0.7); opacity: 0.8; }
+.tab-btn.active .tab-icon { filter: grayscale(0); opacity: 1; transform: scale(1.1); color: white !important; }
+
+/* HEADER PAGINE INTERNE */
+.app-header { padding: 50px 20px 20px; color: white; text-align: center; position: relative; }
 #fontane-screen .app-header { background: linear-gradient(135deg, var(--primary-blue), #1d4ed8); }
 #beverini-screen .app-header { background: linear-gradient(135deg, var(--primary-green), #047857); }
 #news-screen .app-header { background: linear-gradient(135deg, var(--primary-orange), #d97706); }
 #detail-screen .app-header { background: #333; }
 
-.back-btn { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
-.screen-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
+.back-btn { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; }
+.screen-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; }
 
-/* CONTENT & LISTS */
-.content-area { padding: 20px; padding-bottom: 80px; max-width: 800px; margin: 0 auto; }
-.search-container { padding: 15px 20px; background: white; border-bottom: 1px solid #eee; }
-.search-input { width: 100%; padding: 12px 15px; border: 2px solid #eee; border-radius: 12px; font-size: 1rem; outline: none; transition: border 0.3s; }
-.search-input:focus { border-color: var(--primary-blue); }
+/* LISTE & GRIGLIE */
+.content-area { padding: 20px; margin-bottom: 60px; }
+.search-container { padding: 20px; background: var(--card-bg); border-bottom: 1px solid #e5e7eb; }
+.search-input { width: 100%; padding: 15px 20px; border: 2px solid #e5e7eb; border-radius: 15px; font-size: 1rem; }
 
 .items-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-.grid-item { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); cursor: pointer; transition: transform 0.2s; }
-.grid-item:active { transform: scale(0.98); }
-.item-image { width: 100%; height: 140px; object-fit: cover; }
-.item-content { padding: 12px; }
-.item-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 5px; line-height: 1.2; }
-.item-status { font-size: 0.7rem; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; font-weight: 700; display: inline-block; }
+.grid-item { background: var(--card-bg); border-radius: 20px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); cursor: pointer; display: flex; flex-direction: column; }
+.item-image { width: 100%; height: 180px; object-fit: cover; }
+.item-content { padding: 15px; }
+.item-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 5px; }
+.item-status { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
 .status-funzionante { background: #d1fae5; color: #065f46; }
 .status-non-funzionante { background: #fee2e2; color: #991b1b; }
-.status-manutenzione { background: #fef3c7; color: #92400e; }
 
-.compact-items-list { display: flex; flex-direction: column; gap: 10px; }
-.compact-item { display: flex; background: white; border-radius: 12px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); gap: 15px; align-items: center; cursor: pointer; border: 1px solid #f0f0f0; }
-.compact-image { width: 60px; height: 60px; border-radius: 10px; object-fit: cover; }
-.compact-info { flex: 1; }
+.compact-items-list { display: flex; flex-direction: column; gap: 12px; }
+.compact-item { background: var(--card-bg); border-radius: 15px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; display: flex; min-height: 80px; }
+.compact-image { width: 80px; height: 80px; object-fit: cover; }
+.compact-info { padding: 12px 15px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
 
 /* NEWS */
-.news-container { display: flex; flex-direction: column; gap: 15px; }
-.news-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left: 4px solid var(--primary-orange); }
-.news-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 5px; }
-.news-date { font-size: 0.8rem; color: #888; }
+.news-container { display: flex; flex-direction: column; gap: 20px; }
+.news-card { background: var(--card-bg); border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 4px solid var(--primary-orange); }
+.news-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 10px; }
+.news-date { font-size: 0.8rem; color: var(--light-text); background: #f3f4f6; padding: 4px 10px; border-radius: 12px; display: inline-block; margin-bottom: 10px; }
 
 /* DETTAGLIO */
-.detail-image { width: 100%; height: 280px; object-fit: cover; }
-.detail-info-card { background: white; border-radius: 25px 25px 0 0; padding: 25px; margin-top: -30px; position: relative; min-height: 300px; }
+.detail-image { width: 100%; height: 250px; border-radius: 20px; object-fit: cover; margin-bottom: 20px; }
+.detail-content { padding: 20px; }
+.detail-info-card { background: var(--card-bg); border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
 
 /* MAPPA */
 #map { height: 100vh; width: 100%; }
 
+/* --- REGOLE DESKTOP (Il Segreto delle Proporzioni) --- */
+/* Copiato esattamente dal file originale */
+@media (min-width: 1024px) {
+    .app-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        min-height: 100vh;
+    }
+    #home-screen {
+        background-attachment: scroll;
+        padding: 50px 20px;
+    }
+    .logo-container {
+        max-width: 600px;
+        margin: 0 auto 30px;
+        justify-content: center;
+    }
+    .home-title {
+        font-size: 2.5rem;
+        max-width: 600px;
+        margin: 0 auto 15px;
+    }
+    .home-subtitle {
+        font-size: 1.1rem;
+        max-width: 500px;
+        margin: 0 auto 40px;
+    }
+    .home-buttons {
+        max-width: 600px; /* ALLARGATO A 600px SU DESKTOP */
+        margin: 0 auto; /* Centrato */
+    }
+    .button-row {
+        gap: 20px;
+    }
+    .home-btn {
+        padding: 20px 15px;
+        min-height: 100px;
+        font-size: 1rem;
+        border-radius: 20px;
+    }
+    .btn-icon {
+        font-size: 2rem;
+        width: 60px;
+        height: 60px;
+    }
+    /* Tab Bar Desktop */
+    .tab-bar {
+        max-width: 1200px;
+        margin: 0 auto;
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 25px 25px 0 0;
+        bottom: 0;
+        width: 100%; /* Larghezza piena meno margini */
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+    }
+    .tab-btn {
+        min-height: 50px;
+        font-size: 0.85rem;
+    }
+    .items-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+    }
+}
+
 /* ADMIN */
 .admin-fab { position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px; background: var(--primary-blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: none; cursor: pointer; z-index: 900; }
-.modal-overlay, .admin-panel-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+.modal-overlay, .admin-panel-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 5000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
 .modal-content, .admin-panel-content { background: white; width: 90%; max-width: 500px; border-radius: 20px; padding: 20px; max-height: 85vh; overflow-y: auto; }
 .admin-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
 .form-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; }
@@ -217,10 +284,3 @@ body {
 .primary { background: var(--primary-blue); } 
 .secondary { background: #6b7280; }
 .danger { background: var(--primary-red); }
-
-/* DESKTOP FIX */
-@media (min-width: 1024px) {
-    .app-container { max-width: 1200px; margin: 0 auto; box-shadow: 0 0 30px rgba(0,0,0,0.1); }
-    .items-grid { grid-template-columns: repeat(4, 1fr); }
-    .tab-bar { max-width: 500px; left: 50%; transform: translateX(-50%); border-radius: 20px 20px 0 0; bottom: 0; }
-}

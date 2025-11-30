@@ -25,7 +25,7 @@
             </div>
             <h1 class="home-title">Fontane & Beverini</h1>
             <p class="home-subtitle">
-                Gestione intelligente delle risorse idriche cittadine.<br>
+                Gestione intelligente delle risorse idriche cittadine.
                 Trova, esplora e monitora tutte le fontane e i beverini della tua città.
             </p>
             <div class="home-buttons">
@@ -52,42 +52,42 @@
             </div>
             <div style="margin-top: 40px; text-align: center;">
                 <button onclick="app.toggleLogin()" style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.8rem;">
-                    <i class="fas fa-lock"></i> Area Admin
+                    <i class="fas fa-lock"></i> Admin
                 </button>
             </div>
         </div>
 
-        <div id="fontane-screen" class="screen">
+        <div id="fontane-screen" class="screen list-screen">
             <header class="app-header">
                 <button class="back-btn" onclick="app.showScreen('home-screen')"><i class="fas fa-arrow-left"></i></button>
                 <h1 class="screen-title">Fontane</h1>
             </header>
-            <div class="search-container">
-                <input type="text" class="search-input" placeholder="🔍 Cerca fontane..." onkeyup="app.filterList('fontane', this.value)">
-            </div>
             <div class="content-area">
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="🔍 Cerca fontane..." onkeyup="app.filterList('fontane', this.value)">
+                </div>
                 <div class="items-grid" id="fontane-list">
                     <div class="loading"><p>Caricamento...</p></div>
                 </div>
             </div>
         </div>
 
-        <div id="beverini-screen" class="screen">
+        <div id="beverini-screen" class="screen list-screen">
             <header class="app-header">
                 <button class="back-btn" onclick="app.showScreen('home-screen')"><i class="fas fa-arrow-left"></i></button>
                 <h1 class="screen-title">Beverini</h1>
             </header>
-            <div class="search-container">
-                <input type="text" class="search-input" placeholder="🔍 Cerca beverini..." onkeyup="app.filterList('beverini', this.value)">
-            </div>
             <div class="content-area">
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="🔍 Cerca beverini..." onkeyup="app.filterList('beverini', this.value)">
+                </div>
                 <div class="compact-items-list" id="beverini-list">
                     <div class="loading"><p>Caricamento...</p></div>
                 </div>
             </div>
         </div>
 
-        <div id="news-screen" class="screen">
+        <div id="news-screen" class="screen list-screen">
             <header class="app-header">
                 <button class="back-btn" onclick="app.showScreen('home-screen')"><i class="fas fa-arrow-left"></i></button>
                 <h1 class="screen-title">News</h1>
@@ -97,7 +97,7 @@
             </div>
         </div>
 
-        <div id="detail-screen" class="screen">
+        <div id="detail-screen" class="screen detail-screen">
             <header class="app-header">
                 <button class="back-btn" onclick="app.goBack()"><i class="fas fa-arrow-left"></i></button>
                 <h1 class="screen-title" id="detail-title">Dettaglio</h1>
@@ -113,17 +113,20 @@
         </div>
 
         <div class="tab-bar">
-            <button class="tab-btn active" onclick="app.showScreen('home-screen')">
+            <button class="tab-btn active" data-target="home-screen" onclick="app.showScreen('home-screen')">
                 <span class="tab-icon"><i class="fas fa-home"></i></span><span>Home</span>
             </button>
-            <button class="tab-btn" onclick="app.showScreen('fontane-screen')">
+            <button class="tab-btn" data-target="fontane-screen" onclick="app.showScreen('fontane-screen')">
                 <span class="tab-icon"><i class="fas fa-monument"></i></span><span>Fontane</span>
             </button>
-            <button class="tab-btn" onclick="app.showScreen('beverini-screen')">
+            <button class="tab-btn" data-target="beverini-screen" onclick="app.showScreen('beverini-screen')">
                 <span class="tab-icon"><i class="fas fa-faucet"></i></span><span>Beverini</span>
             </button>
-            <button class="tab-btn" onclick="app.showScreen('mappa-screen')">
+            <button class="tab-btn" data-target="mappa-screen" onclick="app.showScreen('mappa-screen')">
                 <span class="tab-icon"><i class="fas fa-map-marked-alt"></i></span><span>Mappa</span>
+            </button>
+            <button class="tab-btn" data-target="news-screen" onclick="app.showScreen('news-screen')">
+                <span class="tab-icon"><i class="fas fa-newspaper"></i></span><span>News</span>
             </button>
         </div>
 
