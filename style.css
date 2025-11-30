@@ -24,22 +24,19 @@ body {
 
 /* --- GESTIONE SCHERMATE --- */
 .app-container { max-width: 100%; margin: 0 auto; min-height: 100vh; position: relative; }
-
-/* Logica Nascondi/Mostra */
 .screen { display: none !important; min-height: 100vh; width: 100%; position: relative; padding-bottom: 80px; }
 .screen.active { display: block !important; animation: fadeIn 0.4s ease; }
-#home-screen.active { display: flex !important; } /* Fondamentale per la centratura Home */
+#home-screen.active { display: flex !important; } 
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* --- HOME SCREEN --- */
 #home-screen {
     background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
-                url('./images/sfondo-home.jpg'); /* LOCALE */
+                url('./images/sfondo-home.jpg');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
-    /* Flexbox originale */
     flex-direction: column;
     justify-content: center;
     align-items: center;
@@ -53,10 +50,9 @@ body {
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: center; /* Centrato come screenshot */
+    justify-content: center;
     gap: 20px;
     width: 100%;
-    /* Rimosso max-width restrittivo che avevo messo */
 }
 
 .app-logo, .comune-logo {
@@ -78,9 +74,9 @@ body {
 
 .comune-logo { 
     background-image: url('./images/logo-comune.png');
-    background-color: transparent; /* Trasparente */
+    background-color: transparent;
     opacity: 0.9;
-    transform: scale(1.1); /* Leggermente più grande */
+    transform: scale(1.1);
 }
 
 .home-title {
@@ -94,10 +90,9 @@ body {
     margin-bottom: 20px; text-shadow: 0 1px 5px rgba(0,0,0,0.3);
 }
 
-/* BOTTONI HOME */
+/* --- BOTTONI HOME (EFFETTO VETRO E ALONE) --- */
 .home-buttons { 
-    width: 100%; 
-    max-width: 380px; /* Base Mobile */
+    width: 100%; max-width: 380px;
     display: flex; flex-direction: column; gap: 16px; 
 }
 
@@ -105,7 +100,7 @@ body {
 
 .home-btn {
     flex: 1;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.15); /* IL GRIGIO TRASPARENTE */
     color: white;
     border: 2px solid rgba(255, 255, 255, 0.4);
     border-radius: 18px;
@@ -115,29 +110,42 @@ body {
     backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 8px; position: relative; overflow: hidden;
-    min-height: 85px; /* Altezza originale */
+    min-height: 85px;
 }
 
-.home-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
-.home-btn:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.25); }
+/* EFFETTO ALONE/SCALATURA AL PASSAGGIO DEL MOUSE */
+.home-btn:hover { 
+    transform: translateY(-2px) scale(1.05); 
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25); 
+}
+.home-btn:active { 
+    transform: scale(0.98); 
+    background: rgba(255, 255, 255, 0.25); 
+}
 
+/* ICONE DENTRO I BOTTONI */
 .btn-icon {
     font-size: 1.6rem; width: 48px; height: 48px;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.25); /* QUADRATINO CHIARO */
     border-radius: 14px; flex-shrink: 0;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
 }
 
-/* Colori specifici pulsanti */
+/* STILI SPECIFICI (Bordi colorati e icone) */
 .fontane-btn { border-left: 4px solid var(--primary-blue); }
 .fontane-btn .btn-icon { color: var(--primary-blue); border: 2px solid rgba(59, 130, 246, 0.5); }
+
 .beverini-btn { border-left: 4px solid var(--primary-green); }
 .beverini-btn .btn-icon { color: var(--primary-green); border: 2px solid rgba(16, 185, 129, 0.5); }
+
 .mappa-btn { border-left: 4px solid var(--primary-purple); }
 .mappa-btn .btn-icon { color: var(--primary-purple); border: 2px solid rgba(139, 92, 246, 0.5); }
+
 .news-btn { border-left: 4px solid var(--primary-orange); }
 .news-btn .btn-icon { color: var(--primary-orange); border: 2px solid rgba(245, 158, 11, 0.5); }
+
 
 /* --- TAB BAR INFERIORE (STILE ORIGINALE) --- */
 .tab-bar {
@@ -150,19 +158,30 @@ body {
 
 .tab-btn {
     flex: 1; background: none; border: none; padding: 6px 8px; text-align: center;
-    cursor: pointer; border-radius: 10px; font-size: 0.75rem; color: var(--light-text);
+    cursor: pointer; border-radius: 10px; font-size: 0.75rem; 
+    color: var(--light-text); /* COLORE GRIGIO DI BASE */
     display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 44px;
+    transition: all 0.3s ease;
 }
 
+.tab-icon { 
+    font-size: 1.1rem; 
+    transition: all 0.3s ease; 
+    filter: grayscale(0.7); 
+    opacity: 0.8; 
+}
+
+/* QUANDO IL BOTTONE È ATTIVO (Si colora lo sfondo e diventa bianco il testo) */
 .tab-btn.active { color: white; }
+.tab-btn.active .tab-icon { filter: grayscale(0); opacity: 1; transform: scale(1.1); color: white !important; }
+
+/* Colori specifici per tab attiva (come originale) */
 .tab-btn.active[data-target="home-screen"] { background: var(--primary-blue); }
 .tab-btn.active[data-target="fontane-screen"] { background: var(--primary-blue); }
 .tab-btn.active[data-target="beverini-screen"] { background: var(--primary-green); }
 .tab-btn.active[data-target="mappa-screen"] { background: var(--primary-purple); }
 .tab-btn.active[data-target="news-screen"] { background: var(--primary-orange); }
 
-.tab-icon { font-size: 1.1rem; transition: all 0.3s ease; filter: grayscale(0.7); opacity: 0.8; }
-.tab-btn.active .tab-icon { filter: grayscale(0); opacity: 1; transform: scale(1.1); color: white !important; }
 
 /* HEADER PAGINE INTERNE */
 .app-header { padding: 50px 20px 20px; color: white; text-align: center; position: relative; }
@@ -180,7 +199,8 @@ body {
 .search-input { width: 100%; padding: 15px 20px; border: 2px solid #e5e7eb; border-radius: 15px; font-size: 1rem; }
 
 .items-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-.grid-item { background: var(--card-bg); border-radius: 20px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); cursor: pointer; display: flex; flex-direction: column; }
+.grid-item { background: var(--card-bg); border-radius: 20px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); cursor: pointer; display: flex; flex-direction: column; transition: all 0.3s ease; }
+.grid-item:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
 .item-image { width: 100%; height: 180px; object-fit: cover; }
 .item-content { padding: 15px; }
 .item-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 5px; }
@@ -189,7 +209,8 @@ body {
 .status-non-funzionante { background: #fee2e2; color: #991b1b; }
 
 .compact-items-list { display: flex; flex-direction: column; gap: 12px; }
-.compact-item { background: var(--card-bg); border-radius: 15px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; display: flex; min-height: 80px; }
+.compact-item { background: var(--card-bg); border-radius: 15px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; display: flex; min-height: 80px; transition: all 0.3s ease;}
+.compact-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 .compact-image { width: 80px; height: 80px; object-fit: cover; }
 .compact-info { padding: 12px 15px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
 
@@ -207,71 +228,20 @@ body {
 /* MAPPA */
 #map { height: 100vh; width: 100%; }
 
-/* --- REGOLE DESKTOP (Il Segreto delle Proporzioni) --- */
-/* Copiato esattamente dal file originale */
+/* --- REGOLE DESKTOP --- */
 @media (min-width: 1024px) {
-    .app-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        min-height: 100vh;
-    }
-    #home-screen {
-        background-attachment: scroll;
-        padding: 50px 20px;
-    }
-    .logo-container {
-        max-width: 600px;
-        margin: 0 auto 30px;
-        justify-content: center;
-    }
-    .home-title {
-        font-size: 2.5rem;
-        max-width: 600px;
-        margin: 0 auto 15px;
-    }
-    .home-subtitle {
-        font-size: 1.1rem;
-        max-width: 500px;
-        margin: 0 auto 40px;
-    }
-    .home-buttons {
-        max-width: 600px; /* ALLARGATO A 600px SU DESKTOP */
-        margin: 0 auto; /* Centrato */
-    }
-    .button-row {
-        gap: 20px;
-    }
-    .home-btn {
-        padding: 20px 15px;
-        min-height: 100px;
-        font-size: 1rem;
-        border-radius: 20px;
-    }
-    .btn-icon {
-        font-size: 2rem;
-        width: 60px;
-        height: 60px;
-    }
-    /* Tab Bar Desktop */
-    .tab-bar {
-        max-width: 1200px;
-        margin: 0 auto;
-        left: 50%;
-        transform: translateX(-50%);
-        border-radius: 25px 25px 0 0;
-        bottom: 0;
-        width: 100%; /* Larghezza piena meno margini */
-        box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-    }
-    .tab-btn {
-        min-height: 50px;
-        font-size: 0.85rem;
-    }
-    .items-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 25px;
-    }
+    .app-container { max-width: 1200px; margin: 0 auto; box-shadow: 0 0 20px rgba(0,0,0,0.1); min-height: 100vh; }
+    #home-screen { background-attachment: scroll; padding: 50px 20px; }
+    .logo-container { max-width: 600px; margin: 0 auto 30px; justify-content: center; }
+    .home-title { font-size: 2.5rem; max-width: 600px; margin: 0 auto 15px; }
+    .home-subtitle { font-size: 1.1rem; max-width: 500px; margin: 0 auto 40px; }
+    .home-buttons { max-width: 600px; margin: 0 auto; }
+    .button-row { gap: 20px; }
+    .home-btn { padding: 20px 15px; min-height: 100px; font-size: 1rem; border-radius: 20px; }
+    .btn-icon { font-size: 2rem; width: 60px; height: 60px; }
+    .tab-bar { max-width: 1200px; margin: 0 auto; left: 50%; transform: translateX(-50%); border-radius: 25px 25px 0 0; bottom: 0; width: 100%; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
+    .tab-btn { min-height: 50px; font-size: 0.85rem; }
+    .items-grid { grid-template-columns: repeat(3, 1fr); gap: 25px; }
 }
 
 /* ADMIN */
