@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fontane & Beverini - Napoli</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="apple-touch-icon" href="./images/logo-app.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="home-screen" class="screen active">
+        <div class="logo-container">
+            <div class="app-logo"></div>
+            <div class="comune-logo"></div>
+        </div>
+        <h1 class="home-title">Fontane & Beverini</h1>
+        <p class="home-subtitle">Gestione intelligente delle risorse idriche cittadine.</p>
+        
+        <div class="home-buttons">
+            <div class="button-row">
+                <button class="home-btn fontane-btn" onclick="app.showScreen('fontane-screen')">
+                    <span class="btn-icon"><i class="fas fa-monument"></i></span>
+                    <span class="btn-text">Fontane</span>
+                </button>
+                <button class="home-btn beverini-btn" onclick="app.showScreen('beverini-screen')">
+                    <span class="btn-icon"><i class="fas fa-faucet"></i></span>
+                    <span class="btn-text">Beverini</span>
+                </button>
+            </div>
+            <div class="button-row">
+                <button class="home-btn mappa-btn" onclick="app.showScreen('mappa-screen')">
+                    <span class="btn-icon"><i class="fas fa-map-marked-alt"></i></span>
+                    <span class="btn-text">Mappa</span>
+                </button>
+                <button class="home-btn news-btn" onclick="app.showScreen('news-screen')">
+                    <span class="btn-icon"><i class="fas fa-newspaper"></i></span>
+                    <span class="btn-text">News</span>
+                </button>
+            </div>
+        </div>
+        
+        <div style="margin-top: 40px; opacity: 0.6; cursor: pointer; color: white; font-size: 0.8rem;" onclick="app.toggleLogin()">
+            <i class="fas fa-lock"></i> Area Admin
+        </div>
+    </div>
+
+    <div id="fontane-screen" class="screen list-screen">
+        <header class="app-header">
+            <button class="back-btn" onclick="app.goBack()"><i class="fas fa-arrow-left"></i></button>
+            <h1 class="screen-title">Fontane</h1>
+        </header>
+        <div class="search-container">
+            <input type="text" class="search-input" placeholder="🔍 Cerca fontane..." onkeyup="app.filterList('fontane', this.value)">
+        </div>
+        <div class="content-area">
+            <div class="items-grid" id="fontane-list">
+                <div class="loading"><div class="loading-spinner"></div><p>Caricamento...</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="beverini-screen" class="screen list-screen">
+        <header class="app-header">
+            <button class="back-btn" onclick="app.goBack()"><i class="fas fa-arrow-left"></i></button>
+            <h1 class="screen-title">Beverini</h1>
+        </header>
+        <div class="search-container">
+            <input type="text" class="search-input" placeholder="🔍 Cerca beverini..." onkeyup="app.filterList('beverini', this.value)">
+        </div>
+        <div class="content-area">
+            <div class="compact-items-list" id="beverini-list">
+                <div class="loading"><div class="loading-spinner"></div><p>Caricamento...</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="news-screen" class="screen list-screen">
+        <header class="app-header">
+            <button class="back-btn" onclick="app.goBack()"><i class="fas fa-arrow-left"></i></button>
+            <h1 class="screen-title">News</h1>
+        </header>
+        <div class="content-area">
+            <div class="news-container" id="news-list">
+                <div class="loading"><div class="loading-spinner"></div><p>Caricamento...</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detail-screen" class="screen detail-screen">
+        <header class="app-header">
+            <button class="back-btn" onclick="app.goBack()"><i class="fas fa-arrow-left"></i></button>
+            <h1 class="screen-title" id="detail-title">Dettaglio</h1>
+        </header>
+        <div class="detail-content" id="detail-content"></div>
+    </div>
+
+    <div id="mappa-screen" class="screen">
+        <header class="app-header" style="position: absolute; top: 0; left: 0; right: 0; z-index: 1000; background:none; pointer-events: none;">
+            <button class="back-btn" onclick="app.goBack()" style="pointer-events: auto; margin: 15px;"><i class="fas fa-arrow-left"></i></button>
+        </header>
+        <div id="map"></div>
+    </div>
+
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="app.showScreen('home-screen')">
+            <span class="tab-icon"><i class="fas fa-home"></i></span><span>Home</span>
+        </button>
+        <button class="tab-btn" onclick="app.showScreen('fontane-screen')">
+            <span class="tab-icon"><i class="fas fa-monument"></i></span><span>Fontane</span>
+        </button>
+        <button class="tab-btn" onclick="app.showScreen('beverini-screen')">
+            <span class="tab-icon"><i class="fas fa-faucet"></i></span><span>Beverini</span>
+        </button>
+        <button class="tab-btn" onclick="app.showScreen('mappa-screen')">
+            <span class="tab-icon"><i class="fas fa-map-marked-alt"></i></span><span>Mappa</span>
+        </button>
+    </div>
+
+    <button id="admin-fab" class="admin-fab" onclick="app.openAdminPanel()" style="display: none;">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Login Admin</h3>
+            <input type="email" id="admin-email" placeholder="Email" class="form-input">
+            <input type="password" id="admin-password" placeholder="Password" class="form-input">
+            <div class="modal-buttons">
+                <button onclick="app.login()" class="admin-btn primary">Accedi</button>
+                <button onclick="document.getElementById('login-modal').style.display='none'" class="admin-btn secondary">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-panel-overlay" id="admin-panel">
+        <div class="admin-panel-content">
+            <div class="admin-panel-header">
+                <h3>Gestione</h3>
+                <button onclick="app.closeAdminPanel()" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <div class="form-group">
+                    <label>Tipo:</label>
+                    <select id="adm-type" class="form-input">
+                        <option value="fontane">Fontana</option>
+                        <option value="beverini">Beverino</option>
+                        <option value="news">News</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nome / Titolo:</label>
+                    <input type="text" id="adm-name" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Indirizzo / Sottotitolo:</label>
+                    <input type="text" id="adm-address" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Stato:</label>
+                    <select id="adm-status" class="form-input">
+                        <option value="funzionante">Funzionante</option>
+                        <option value="non-funzionante">Non Funzionante</option>
+                        <option value="manutenzione">In Manutenzione</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="border: 1px dashed #ccc; padding: 10px; border-radius: 8px;">
+                    <label>Immagine:</label>
+                    <input type="file" id="adm-file" accept="image/*">
+                    <small id="upload-msg" style="display:block; color:#666;">Seleziona per caricare nuova foto</small>
+                    <input type="hidden" id="adm-image-url">
+                </div>
+
+                <div class="form-group">
+                    <label>Coordinate:</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="number" id="adm-lat" placeholder="Lat" class="form-input" step="any">
+                        <input type="number" id="adm-lng" placeholder="Lng" class="form-input" step="any">
+                    </div>
+                    <button onclick="app.getGPS()" class="admin-btn secondary" style="margin-top:5px; width:100%;">📍 Usa mia posizione</button>
+                </div>
+
+                <div class="modal-buttons" style="margin-top: 20px;">
+                    <button onclick="app.saveData()" class="admin-btn primary">Salva</button>
+                    <button id="btn-delete" onclick="app.deleteData()" class="admin-btn danger" style="display:none;">Elimina</button>
+                </div>
+
+                <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px;">
+                    <button onclick="app.importInitialData()" style="background:#444; color:white; border:none; padding:5px; border-radius:4px; font-size:0.7rem;">⚠️ Carica Dati Iniziali</button>
+                    <button onclick="app.logout()" style="background:#d32f2f; color:white; border:none; padding:5px; border-radius:4px; font-size:0.7rem; float:right;">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script type="module" src="app.js"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+</body>
+</html>
