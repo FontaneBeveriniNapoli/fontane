@@ -10,6 +10,7 @@
     --background: #f8fafc;
     --card-bg: #ffffff;
 }
+
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
 
 body {
@@ -21,25 +22,26 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* --- GESTIONE SCHERMATE (IL FIX) --- */
-.app-container { max-width: 100%; margin: 0 auto; min-height: 100vh; position: relative; }
+/* =========================================
+   GESTIONE SCHERMATE (IL FIX DEFINITIVO)
+   ========================================= */
+.app-container { width: 100%; min-height: 100vh; position: relative; }
 
-/* 1. Di base TUTTE le schermate sono NASCOSTE */
+/* 1. TUTTE LE SCHERMATE SONO INVISIBILI DI BASE */
 .screen { 
     display: none !important; 
-    min-height: 100vh; 
     width: 100%; 
-    position: relative; 
-    padding-bottom: 120px; 
+    min-height: 100vh;
+    padding-bottom: 80px; 
 }
 
-/* 2. Quando una schermata ha la classe 'active', diventa VISIBILE */
+/* 2. QUANDO ATTIVA, DIVENTA VISIBILE A BLOCCO */
 .screen.active { 
     display: block !important; 
-    animation: fadeIn 0.4s ease; 
+    animation: fadeIn 0.4s ease;
 }
 
-/* 3. ECCEZIONE HOME: Quando è attiva, usa FLEX per centrare tutto */
+/* 3. ECCEZIONE HOME: QUANDO ATTIVA, DEVE ESSERE FLEX (PER CENTRARE) */
 #home-screen.active {
     display: flex !important;
     flex-direction: column;
@@ -49,28 +51,27 @@ body {
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* --- HOME SCREEN --- */
+
+/* =========================================
+   HOME SCREEN (GRAFICA ORIGINALE)
+   ========================================= */
 #home-screen {
     background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
                 url('./images/sfondo-home.jpg');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
-    /* NOTA: Ho rimosso 'display: flex' da qui per evitare il bug della sovrapposizione */
     padding: 30px 20px;
     text-align: center;
 }
 
 .logo-container {
     margin-bottom: 25px;
-    text-align: left;
-    position: relative;
     display: flex;
     align-items: center;
-    justify-content: center; /* Centrato */
+    justify-content: center; /* Centratura */
     gap: 20px;
     width: 100%;
-    max-width: 380px;
 }
 
 .app-logo, .comune-logo {
@@ -82,18 +83,20 @@ body {
     background-repeat: no-repeat;
 }
 
-.app-logo {
+/* LOGO APP: Sfondo bianco + Bordo */
+.app-logo { 
     background-image: url('./images/logo-app.png');
-    background-color: white;
+    background-color: white; 
     border: 3px solid rgba(255, 255, 255, 0.9);
     box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     padding: 6px;
 }
 
-.comune-logo {
-    background-image: url('./images/logo-comune.png');
+/* LOGO COMUNE: Trasparente */
+.comune-logo { 
+    background-image: url('./images/logo-comune.png'); 
     background-color: transparent;
-    opacity: 0.9; /* Trasparenza originale */
+    opacity: 0.9;
     transform: scale(1.1);
 }
 
@@ -108,47 +111,60 @@ body {
     margin-bottom: 20px; text-shadow: 0 1px 5px rgba(0,0,0,0.3);
 }
 
-/* BOTTONI HOME */
-.home-buttons { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 16px; }
+/* BOTTONI HOME (Esatti dall'originale) */
+.home-buttons { 
+    width: 100%; max-width: 380px; 
+    display: flex; flex-direction: column; gap: 16px; 
+}
+
 .button-row { display: flex; gap: 16px; width: 100%; }
 
 .home-btn {
     flex: 1;
-    background: rgba(255, 255, 255, 0.15); /* Sfondo grigio vetro */
+    background: rgba(255, 255, 255, 0.15); /* Sfondo semitrasparente */
     color: white;
     border: 2px solid rgba(255, 255, 255, 0.4);
     border-radius: 18px;
     padding: 16px 12px;
     font-size: 0.95rem; font-weight: 600; cursor: pointer;
     text-align: center; transition: all 0.3s ease;
-    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); /* Vetro */
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 8px; position: relative; overflow: hidden;
     min-height: 85px;
 }
 
+/* Effetto Hover e Click */
 .home-btn:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
 .home-btn:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.25); }
 
+/* Icona nel quadratino grigio */
 .btn-icon {
     font-size: 1.6rem; width: 48px; height: 48px;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(255, 255, 255, 0.25); /* Quadratino grigio interno */
+    background: rgba(255, 255, 255, 0.25); /* GRIGIO INTERNO */
     border-radius: 14px; flex-shrink: 0;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     transition: all 0.3s ease;
 }
 
+/* Bordi colorati */
 .fontane-btn { border-left: 4px solid var(--primary-blue); }
 .fontane-btn .btn-icon { color: var(--primary-blue); border: 2px solid rgba(59, 130, 246, 0.5); }
+
 .beverini-btn { border-left: 4px solid var(--primary-green); }
 .beverini-btn .btn-icon { color: var(--primary-green); border: 2px solid rgba(16, 185, 129, 0.5); }
+
 .mappa-btn { border-left: 4px solid var(--primary-purple); }
 .mappa-btn .btn-icon { color: var(--primary-purple); border: 2px solid rgba(139, 92, 246, 0.5); }
+
 .news-btn { border-left: 4px solid var(--primary-orange); }
 .news-btn .btn-icon { color: var(--primary-orange); border: 2px solid rgba(245, 158, 11, 0.5); }
 
-/* TAB BAR */
+
+/* =========================================
+   TAB BAR (NAVIGAZIONE BASSO)
+   ========================================= */
 .tab-bar {
     position: fixed; bottom: 0; left: 0; right: 0;
     background: var(--card-bg);
@@ -156,24 +172,32 @@ body {
     border-top: 1px solid #e5e7eb;
     z-index: 1000; height: 60px;
 }
+
 .tab-btn {
     flex: 1; background: none; border: none; padding: 6px 8px; text-align: center;
-    cursor: pointer; border-radius: 10px; font-size: 0.75rem; color: var(--light-text);
+    cursor: pointer; border-radius: 10px; font-size: 0.75rem; 
+    color: var(--light-text); /* Grigio default */
     display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 44px;
     transition: all 0.3s ease;
 }
+
 .tab-icon { font-size: 1.1rem; transition: all 0.3s ease; filter: grayscale(0.7); opacity: 0.8; }
+
+/* STATO ATTIVO */
 .tab-btn.active { color: white; }
 .tab-btn.active .tab-icon { filter: grayscale(0); opacity: 1; transform: scale(1.1); color: white !important; }
 
-/* COLORI TAB ATTIVI */
+/* Sfondi colorati per tab attiva */
 .tab-btn.active[data-target="home-screen"] { background: var(--primary-blue); }
 .tab-btn.active[data-target="fontane-screen"] { background: var(--primary-blue); }
 .tab-btn.active[data-target="beverini-screen"] { background: var(--primary-green); }
 .tab-btn.active[data-target="mappa-screen"] { background: var(--primary-purple); }
 .tab-btn.active[data-target="news-screen"] { background: var(--primary-orange); }
 
-/* HEADER PAGINE INTERNE */
+
+/* =========================================
+   HEADER PAGINE INTERNE
+   ========================================= */
 .app-header { padding: 50px 20px 20px; color: white; text-align: center; position: relative; }
 #fontane-screen .app-header { background: linear-gradient(135deg, var(--primary-blue), #1d4ed8); }
 #beverini-screen .app-header { background: linear-gradient(135deg, var(--primary-green), #047857); }
@@ -218,31 +242,28 @@ body {
 /* MAPPA */
 #map { height: 100vh; width: 100%; }
 
-/* MEDIA QUERIES ORIGINALI (Per mantenere le proporzioni Desktop) */
-@media (max-width: 380px) {
-    .home-buttons { max-width: 100%; }
-    .button-row { gap: 12px; }
-    .home-btn { padding: 14px 10px; min-height: 80px; font-size: 0.85rem; }
-    .btn-icon { font-size: 1.4rem; width: 42px; height: 42px; }
-    .logo-container { flex-direction: row; gap: 15px; margin-left: 10px; max-width: 100%; }
-}
-
+/* =========================================
+   MEDIA QUERIES DESKTOP ORIGINALI
+   ========================================= */
 @media (min-width: 1024px) {
     .app-container { max-width: 1200px; margin: 0 auto; box-shadow: 0 0 20px rgba(0,0,0,0.1); min-height: 100vh; }
     #home-screen { background-attachment: scroll; padding: 50px 20px; }
     .logo-container { max-width: 600px; margin: 0 auto 30px; justify-content: center; }
     .home-title { font-size: 2.5rem; max-width: 600px; margin: 0 auto 15px; }
     .home-subtitle { font-size: 1.1rem; max-width: 500px; margin: 0 auto 40px; }
+    
+    /* Questo assicura che i bottoni siano larghi su desktop */
     .home-buttons { max-width: 600px; margin: 0 auto; }
     .button-row { gap: 20px; }
     .home-btn { padding: 20px 15px; min-height: 100px; font-size: 1rem; border-radius: 20px; }
     .btn-icon { font-size: 2rem; width: 60px; height: 60px; }
+    
     .tab-bar { max-width: 1200px; margin: 0 auto; left: 50%; transform: translateX(-50%); border-radius: 25px 25px 0 0; bottom: 0; width: 100%; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
     .tab-btn { min-height: 50px; font-size: 0.85rem; }
     .items-grid { grid-template-columns: repeat(3, 1fr); gap: 25px; }
 }
 
-/* ADMIN PANEL (AGGIUNTO) */
+/* STILI ADMIN (Nuovi, ma necessari) */
 .admin-fab { position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px; background: var(--primary-blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: none; cursor: pointer; z-index: 900; }
 .modal-overlay, .admin-panel-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 5000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
 .modal-content, .admin-panel-content { background: white; width: 90%; max-width: 500px; border-radius: 20px; padding: 20px; max-height: 85vh; overflow-y: auto; }
