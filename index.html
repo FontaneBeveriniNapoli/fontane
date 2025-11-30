@@ -39,33 +39,7 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="navigation-modal">
-        <div class="modal-content">
-            <h3 class="modal-title">Scegli l'app di navigazione</h3>
-            <div class="modal-buttons">
-                <button class="modal-btn primary" onclick="openGoogleMaps()">
-                    <i class="fas fa-map-marked-alt"></i> Google Maps
-                </button>
-                <button class="modal-btn primary" onclick="openAppleMaps()">
-                    <i class="fas fa-map-marked-alt"></i> Apple Maps
-                </button>
-                <button class="modal-btn secondary" onclick="closeNavigationModal()">
-                    <i class="fas fa-times"></i> Annulla
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="info-modal">
-        <div class="modal-content">
-            <h3 class="modal-title" id="info-modal-title">Informazioni</h3>
-            <p id="info-modal-message"></p>
-            <div class="modal-buttons">
-                <button class="modal-btn primary" onclick="closeInfoModal()">OK</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Pannello Admin Completo -->
     <div class="admin-panel-overlay" id="admin-panel">
         <div class="admin-panel-content">
             <header class="admin-panel-header">
@@ -141,6 +115,7 @@
                         </button>
                     </div>
                     <div class="activity-list" id="activity-list">
+                        <!-- Le attività verranno caricate qui -->
                     </div>
                 </div>
             </div>
@@ -155,22 +130,6 @@
                     </button>
                 </div>
 
-                <div class="import-export-section">
-                    <h4>Import/Export Fontane</h4>
-                    <div class="import-options">
-                        <input type="file" id="import-fontane-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileImport('fontane', this.files)">
-                        <button class="admin-btn secondary" onclick="document.getElementById('import-fontane-file').click()">
-                            <i class="fas fa-file-import"></i> Importa Fontane
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('fontane')">
-                            <i class="fas fa-file-export"></i> Esporta Fontane
-                        </button>
-                        <button class="admin-btn secondary" onclick="downloadTemplate('fontane')">
-                            <i class="fas fa-download"></i> Template Fontane
-                        </button>
-                    </div>
-                </div>
-
                 <h3>Aggiungi/Modifica Fontana</h3>
                 <form id="fontana-form" onsubmit="saveFontana(event)">
                     <input type="hidden" id="fontana-id">
@@ -180,13 +139,7 @@
                     </div>
                     <div class="form-group">
                         <label for="fontana-indirizzo">Indirizzo:</label>
-                        <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-                            <input type="text" id="fontana-indirizzo" required style="flex: 1;">
-                            <button type="button" class="location-btn secondary" onclick="getCurrentLocationWithAddress('fontana')"
-                                    title="Usa la posizione corrente per coordinate e indirizzo">
-                                <i class="fas fa-location-arrow"></i> Rileva Automatico
-                            </button>
-                        </div>
+                        <input type="text" id="fontana-indirizzo" required>
                     </div>
                     <div class="form-group">
                         <label for="fontana-stato">Stato:</label>
@@ -197,40 +150,12 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="fontana-anno">Anno:</label>
-                        <input type="text" id="fontana-anno">
+                        <label for="fontana-latitudine">Latitudine:</label>
+                        <input type="text" id="fontana-latitudine" required>
                     </div>
                     <div class="form-group">
-                        <label for="fontana-descrizione">Descrizione:</label>
-                        <textarea id="fontana-descrizione" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="fontana-storico">Storico:</label>
-                        <textarea id="fontana-storico" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="fontana-latitudine">Coordinate:</label>
-                        <div style="margin-bottom: 8px;">
-                            <div class="location-buttons">
-                                <button type="button" class="location-btn primary" onclick="getCurrentLocationCoordinatesOnly('fontana')">
-                                    <i class="fas fa-location-arrow"></i> Solo Coordinate
-                                </button>
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <div>
-                                <label style="font-size: 0.8rem; color: var(--light-text);">Latitudine</label>
-                                <input type="text" id="fontana-latitudine" required placeholder="40.8518">
-                            </div>
-                            <div>
-                                <label style="font-size: 0.8rem; color: var(--light-text);">Longitudine</label>
-                                <input type="text" id="fontana-longitudine" required placeholder="14.2681">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="fontana-immagine">URL Immagine:</label>
-                        <input type="text" id="fontana-immagine">
+                        <label for="fontana-longitudine">Longitudine:</label>
+                        <input type="text" id="fontana-longitudine" required>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="admin-btn primary">Salva</button>
@@ -242,7 +167,6 @@
                     <table class="admin-table" id="fontane-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Nome</th>
                                 <th>Indirizzo</th>
                                 <th>Stato</th>
@@ -250,6 +174,7 @@
                             </tr>
                         </thead>
                         <tbody id="fontane-table-body">
+                            <!-- Le fontane verranno caricate qui -->
                         </tbody>
                     </table>
                 </div>
@@ -265,22 +190,6 @@
                     </button>
                 </div>
 
-                <div class="import-export-section">
-                    <h4>Import/Export Beverini</h4>
-                    <div class="import-options">
-                        <input type="file" id="import-beverini-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileImport('beverini', this.files)">
-                        <button class="admin-btn secondary" onclick="document.getElementById('import-beverini-file').click()">
-                            <i class="fas fa-file-import"></i> Importa Beverini
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('beverini')">
-                            <i class="fas fa-file-export"></i> Esporta Beverini
-                        </button>
-                        <button class="admin-btn secondary" onclick="downloadTemplate('beverini')">
-                            <i class="fas fa-download"></i> Template Beverini
-                        </button>
-                    </div>
-                </div>
-
                 <h3>Aggiungi/Modifica Beverino</h3>
                 <form id="beverino-form" onsubmit="saveBeverino(event)">
                     <input type="hidden" id="beverino-id">
@@ -290,13 +199,7 @@
                     </div>
                     <div class="form-group">
                         <label for="beverino-indirizzo">Indirizzo:</label>
-                        <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-                            <input type="text" id="beverino-indirizzo" required style="flex: 1;">
-                            <button type="button" class="location-btn secondary" onclick="getCurrentLocationWithAddress('beverino')"
-                                    title="Usa la posizione corrente per coordinate e indirizzo">
-                                <i class="fas fa-location-arrow"></i> Rileva Automatico
-                            </button>
-                        </div>
+                        <input type="text" id="beverino-indirizzo" required>
                     </div>
                     <div class="form-group">
                         <label for="beverino-stato">Stato:</label>
@@ -307,28 +210,12 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="beverino-latitudine">Coordinate:</label>
-                        <div style="margin-bottom: 8px;">
-                            <div class="location-buttons">
-                                <button type="button" class="location-btn primary" onclick="getCurrentLocationCoordinatesOnly('beverino')">
-                                    <i class="fas fa-location-arrow"></i> Solo Coordinate
-                                </button>
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <div>
-                                <label style="font-size: 0.8rem; color: var(--light-text);">Latitudine</label>
-                                <input type="text" id="beverino-latitudine" required placeholder="40.8518">
-                            </div>
-                            <div>
-                                <label style="font-size: 0.8rem; color: var(--light-text);">Longitudine</label>
-                                <input type="text" id="beverino-longitudine" required placeholder="14.2681">
-                            </div>
-                        </div>
+                        <label for="beverino-latitudine">Latitudine:</label>
+                        <input type="text" id="beverino-latitudine" required>
                     </div>
                     <div class="form-group">
-                        <label for="beverino-immagine">URL Immagine:</label>
-                        <input type="text" id="beverino-immagine">
+                        <label for="beverino-longitudine">Longitudine:</label>
+                        <input type="text" id="beverino-longitudine" required>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="admin-btn primary">Salva</button>
@@ -340,7 +227,6 @@
                     <table class="admin-table" id="beverini-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Nome</th>
                                 <th>Indirizzo</th>
                                 <th>Stato</th>
@@ -348,6 +234,7 @@
                             </tr>
                         </thead>
                         <tbody id="beverini-table-body">
+                            <!-- I beverini verranno caricati qui -->
                         </tbody>
                     </table>
                 </div>
@@ -361,22 +248,6 @@
                     <button class="admin-btn secondary" onclick="saveToFirebase('news')">
                         <i class="fas fa-upload"></i> Salva su Firebase
                     </button>
-                </div>
-
-                <div class="import-export-section">
-                    <h4>Import/Export News</h4>
-                    <div class="import-options">
-                        <input type="file" id="import-news-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileImport('news', this.files)">
-                        <button class="admin-btn secondary" onclick="document.getElementById('import-news-file').click()">
-                            <i class="fas fa-file-import"></i> Importa News
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('news')">
-                            <i class="fas fa-file-export"></i> Esporta News
-                        </button>
-                        <button class="admin-btn secondary" onclick="downloadTemplate('news')">
-                            <i class="fas fa-download"></i> Template News
-                        </button>
-                    </div>
                 </div>
 
                 <h3>Aggiungi/Modifica News</h3>
@@ -394,14 +265,6 @@
                         <label for="news-data">Data:</label>
                         <input type="date" id="news-data" required>
                     </div>
-                    <div class="form-group">
-                        <label for="news-categoria">Categoria:</label>
-                        <input type="text" id="news-categoria" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="news-fonte">Fonte:</label>
-                        <input type="text" id="news-fonte" required>
-                    </div>
                     <div class="form-actions">
                         <button type="submit" class="admin-btn primary">Salva</button>
                         <button type="button" class="admin-btn secondary" onclick="resetNewsForm()">Annulla</button>
@@ -412,21 +275,19 @@
                     <table class="admin-table" id="news-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Titolo</th>
                                 <th>Data</th>
-                                <th>Categoria</th>
                                 <th>Azioni</th>
                             </tr>
                         </thead>
                         <tbody id="news-table-body">
+                            <!-- Le news verranno caricate qui -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
             <div class="admin-tab-content" id="config-admin">
-                <!-- Sezione Sicurezza Amministratore -->
                 <div class="backup-section">
                     <h4>Sicurezza Amministratore</h4>
                     <div class="sync-actions">
@@ -443,63 +304,13 @@
                 </div>
 
                 <div class="backup-section">
-                    <h4>Gestione Backup</h4>
-                    <div class="config-item">
-                        <label for="backup-frequency">Frequenza Backup Automatico:</label>
-                        <select id="backup-frequency">
-                            <option value="daily">Giornaliero</option>
-                            <option value="weekly" selected>Settimanale</option>
-                            <option value="monthly">Mensile</option>
-                        </select>
-                    </div>
-                    <div class="config-item">
-                        <label for="max-backups">Numero Massimo Backup:</label>
-                        <input type="number" id="max-backups" value="10" min="1" max="50">
-                    </div>
+                    <h4>Gestione Dati</h4>
                     <div class="sync-actions">
                         <button class="admin-btn primary" onclick="createBackup()">
-                            <i class="fas fa-save"></i> Crea Backup Manuale
+                            <i class="fas fa-save"></i> Crea Backup
                         </button>
                         <button class="admin-btn secondary" onclick="restoreFromBackup()">
-                            <i class="fas fa-history"></i> Ripristina da Backup
-                        </button>
-                    </div>
-
-                    <h4 style="margin-top: 20px;">Backup Disponibili</h4>
-                    <div class="backup-list" id="backup-list">
-                    </div>
-                </div>
-
-                <div class="import-export-section">
-                    <h4>Import/Export Dati in Excel</h4>
-                    <div class="export-options">
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('fontane')">
-                            <i class="fas fa-file-export"></i> Esporta Fontane
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('beverini')">
-                            <i class="fas fa-file-export"></i> Esporta Beverini
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('news')">
-                            <i class="fas fa-file-export"></i> Esporta News
-                        </button>
-                        <button class="admin-btn primary" onclick="exportAllDataToExcel()">
-                            <i class="fas fa-file-archive"></i> Esporta Tutto
-                        </button>
-                    </div>
-
-                    <div class="import-options">
-                        <input type="file" id="import-all-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileImport('all', this.files)">
-                        <button class="admin-btn secondary" onclick="document.getElementById('import-all-file').click()">
-                            <i class="fas fa-file-import"></i> Importa Tutto
-                        </button>
-                    </div>
-                </div>
-
-                <div class="backup-section" style="margin-top: 20px;">
-                    <h4>Manutenzione</h4>
-                    <div class="sync-actions">
-                        <button class="admin-btn secondary" onclick="resetToDefault()">
-                            <i class="fas fa-undo"></i> Ripristina Dati di Default
+                            <i class="fas fa-history"></i> Ripristina Backup
                         </button>
                     </div>
                 </div>
@@ -507,13 +318,15 @@
         </div>
     </div>
 
+    <!-- App Container Principale -->
     <div class="app-container">
+        <!-- Home Screen -->
         <div class="screen active" id="home-screen">
             <div class="logo-container">
-                <div class="app-logo logo-with-image"></div>
-                <div class="comune-logo"></div>
+                <div class="app-logo logo-with-image" onclick="handleSecretSequence('logo')"></div>
+                <div class="comune-logo" onclick="handleSecretSequence('logo')"></div>
             </div>
-            <h1 class="home-title">Fontane & Beverini</h1>
+            <h1 class="home-title" onclick="handleSecretSequence('title')">Fontane & Beverini</h1>
             <p class="home-subtitle">
                 Gestione intelligente delle risorse idriche cittadine.
                 Trova, esplora e monitora tutte le fontane e i beverini della tua città.
@@ -543,6 +356,7 @@
             </div>
         </div>
 
+        <!-- Fontane Screen -->
         <div class="screen list-screen" id="fontane-screen">
             <header class="app-header">
                 <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
@@ -574,11 +388,9 @@
                     </div>
                 </div>
             </div>
-            <button class="fixed-navigate-btn hidden" id="fixed-navigate-btn" onclick="navigateToFixed()">
-                <i class="fas fa-map-marker-alt"></i> Naviga Verso
-            </button>
         </div>
 
+        <!-- Beverini Screen -->
         <div class="screen list-screen" id="beverini-screen">
             <header class="app-header">
                 <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
@@ -610,11 +422,9 @@
                     </div>
                 </div>
             </div>
-            <button class="fixed-navigate-btn hidden" id="fixed-navigate-btn" onclick="navigateToFixed()">
-                <i class="fas fa-map-marker-alt"></i> Naviga Verso
-            </button>
         </div>
 
+        <!-- News Screen -->
         <div class="screen list-screen" id="news-screen">
             <header class="app-header">
                 <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
@@ -631,51 +441,12 @@
             </div>
         </div>
 
-        <div class="screen detail-screen" id="fontana-detail-screen">
-            <header class="app-header">
-                <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
-                <h1 class="screen-title" id="fontana-detail-title">Fontana</h1>
-            </header>
-            <div class="detail-content" id="fontana-detail-content">
-                <div class="loading">
-                    <div class="loading-spinner"></div>
-                </div>
-            </div>
-            <button class="fixed-navigate-btn hidden" id="fixed-navigate-btn" onclick="navigateToFixed()">
-                <i class="fas fa-map-marker-alt"></i> Naviga Verso
-            </button>
-        </div>
-
-        <div class="screen detail-screen" id="beverino-detail-screen">
-            <header class="app-header">
-                <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
-                <h1 class="screen-title" id="beverino-detail-title">Beverino</h1>
-            </header>
-            <div class="detail-content" id="beverino-detail-content">
-                <div class="loading">
-                    <div class="loading-spinner"></div>
-                </div>
-            </div>
-            <button class="fixed-navigate-btn hidden" id="fixed-navigate-btn" onclick="navigateToFixed()">
-                <i class="fas fa-map-marker-alt"></i> Naviga Verso
-            </button>
-        </div>
-
+        <!-- Mappa Screen -->
         <div class="screen" id="mappa-screen">
             <header class="app-header" style="position: absolute; top: 0; left: 0; right: 0; z-index: 1000; padding: 15px 20px;">
                 <button class="back-btn" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
                 <h1 class="screen-title" style="font-size: 1.4rem;">Mappa</h1>
             </header>
-            <div class="map-search-container">
-                <div class="map-search-box">
-                    <input type="text" id="map-search-input" placeholder="🔍 Cerca indirizzo, luogo, punto interesse..."
-                           onkeypress="handleMapSearch(event)">
-                    <button class="map-search-btn" onclick="performMapSearch()">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-                <div class="search-results" id="map-search-results"></div>
-            </div>
             <div id="map" style="height: 100vh;"></div>
             <div class="map-legend">
                 <div class="legend-title">Legenda</div>
@@ -692,39 +463,39 @@
                     <span>La tua posizione</span>
                 </div>
             </div>
-            <div style="position: absolute; bottom: 10px; left: 10px; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 5px; font-size: 0.7rem; z-index: 1000;">
-                © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors
-            </div>
         </div>
 
+        <!-- Tab Bar di Navigazione -->
         <div class="tab-bar">
-            <button class="tab-btn active" data-target="home-screen" onclick="showScreen('home-screen')">
+            <button class="tab-btn active" onclick="showScreen('home-screen')">
                 <span class="tab-icon"><i class="fas fa-home"></i></span>
                 <span>Home</span>
             </button>
-            <button class="tab-btn" data-target="fontane-screen" onclick="showScreen('fontane-screen')">
+            <button class="tab-btn" onclick="showScreen('fontane-screen')">
                 <span class="tab-icon"><i class="fas fa-monument"></i></span>
                 <span>Fontane</span>
             </button>
-            <button class="tab-btn" data-target="beverini-screen" onclick="showScreen('beverini-screen')">
+            <button class="tab-btn" onclick="showScreen('beverini-screen')">
                 <span class="tab-icon"><i class="fas fa-faucet"></i></span>
                 <span>Beverini</span>
             </button>
-            <button class="tab-btn" data-target="mappa-screen" onclick="showScreen('mappa-screen')">
+            <button class="tab-btn" onclick="showScreen('mappa-screen')">
                 <span class="tab-icon"><i class="fas fa-map-marked-alt"></i></span>
                 <span>Mappa</span>
             </button>
-            <button class="tab-btn" data-target="news-screen" onclick="showScreen('news-screen')">
+            <button class="tab-btn" onclick="showScreen('news-screen')">
                 <span class="tab-icon"><i class="fas fa-newspaper"></i></span>
                 <span>News</span>
             </button>
         </div>
     </div>
 
+    <!-- Pulsante Admin FAB -->
     <button class="admin-fab" onclick="openAdminPanel()" style="display: none;">
         <i class="fas fa-cog"></i>
     </button>
 
+    <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="app.js"></script>
