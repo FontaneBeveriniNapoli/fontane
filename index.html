@@ -31,6 +31,8 @@
         window.db = getFirestore(app);
         window.auth = getAuth(app);
         window.firebaseSignIn = signInWithEmailAndPassword;
+        
+        console.log('Firebase inizializzato');
     </script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -450,6 +452,13 @@
     </div>
 
     <div class="app-container">
+        <!-- Pulsante admin icona sola -->
+        <div class="admin-icon-btn-container">
+            <button class="admin-icon-btn" onclick="openAdminPanel()" title="Amministratore">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+
         <div class="screen active" id="home-screen">
             <div class="logo-container">
                 <div class="app-logo logo-with-image"></div>
@@ -480,12 +489,6 @@
                     <button class="home-btn news-btn" onclick="showScreen('news-screen')">
                         <span class="btn-icon"><i class="fas fa-newspaper"></i></span>
                         <span class="btn-text">News</span>
-                    </button>
-                </div>
-                <div class="button-row">
-                    <button class="home-btn admin-btn" onclick="openAdminPanel()" style="border-left: 4px solid var(--primary-purple);">
-                        <span class="btn-icon"><i class="fas fa-cog"></i></span>
-                        <span class="btn-text">Amministratore</span>
                     </button>
                 </div>
             </div>
@@ -668,10 +671,6 @@
             </button>
         </div>
     </div>
-
-    <button class="admin-fab" onclick="openAdminPanel()" style="display: none;">
-        <i class="fas fa-cog"></i>
-    </button>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>

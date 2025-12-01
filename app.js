@@ -2,9 +2,7 @@
 const COLLECTIONS = {
     FONTANE: 'fontane',
     BEVERINI: 'beverini',
-    NEWS: 'news',
-    USERS: 'users',
-    ACTIVITY: 'activity'
+    NEWS: 'news'
 };
 
 // Variabili globali
@@ -33,12 +31,40 @@ let adminAuthTimeout = null;
 async function loadFirebaseData(type) {
     try {
         const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-        const dataRef = collection(window.db, COLLECTIONS[type.toUpperCase()]);
+        
+        const collectionMap = {
+            'fontane': 'fontane',
+            'beverini': 'beverini',
+            'news': 'news'
+        };
+        
+        const collectionName = collectionMap[type];
+        console.log(`Caricamento dati da collection: ${collectionName}`);
+        
+        const dataRef = collection(window.db, collectionName);
         const snapshot = await getDocs(dataRef);
         
         const data = [];
         snapshot.forEach(doc => {
-            data.push({ id: doc.id, ...doc.data() });
+            const docData = doc.data();
+            data.push({ 
+                id: doc.id, 
+                nome: docData.nome || '',
+                indirizzo: docData.indirizzo || '',
+                stato: docData.stato || 'funzionante',
+                latitudine: docData.latitudine || 0,
+                longitudine: docData.longitudine || 0,
+                immagine: docData.immagine || '',
+                anno: docData.anno || '',
+                descrizione: docData.descrizione || '',
+                storico: docData.storico || '',
+                titolo: docData.titolo || '',
+                contenuto: docData.contenuto || '',
+                data: docData.data || new Date().toISOString().split('T')[0],
+                categoria: docData.categoria || '',
+                fonte: docData.fonte || '',
+                last_modified: docData.last_modified || new Date().toISOString()
+            });
         });
         
         appData[type] = data;
@@ -56,19 +82,26 @@ async function loadFirebaseData(type) {
     }
 }
 
-async function saveFirebaseData(type, item, isUpdate = false) {
+async function saveFirebaseData(type, item, id = null) {
     try {
         const { doc, setDoc, updateDoc, collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
         
-        if (isUpdate && item.id) {
-            const docRef = doc(window.db, COLLECTIONS[type.toUpperCase()], item.id);
+        let savedId;
+        const collectionName = COLLECTIONS[type.toUpperCase()];
+        
+        if (id) {
+            // Update existing
+            const docRef = doc(window.db, collectionName, id);
             await updateDoc(docRef, item);
-            return item.id;
+            savedId = id;
         } else {
-            const dataRef = collection(window.db, COLLECTIONS[type.toUpperCase()]);
+            // Create new
+            const dataRef = collection(window.db, collectionName);
             const newDoc = await addDoc(dataRef, item);
-            return newDoc.id;
+            savedId = newDoc.id;
         }
+        
+        return savedId;
     } catch (error) {
         console.error(`Errore nel salvataggio ${type}:`, error);
         throw error;
@@ -78,7 +111,8 @@ async function saveFirebaseData(type, item, isUpdate = false) {
 async function deleteFirebaseData(type, id) {
     try {
         const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-        const docRef = doc(window.db, COLLECTIONS[type.toUpperCase()], id);
+        const collectionName = COLLECTIONS[type.toUpperCase()];
+        const docRef = doc(window.db, collectionName, id);
         await deleteDoc(docRef);
         return true;
     } catch (error) {
@@ -293,33 +327,72 @@ function logoutAdmin() {
 
 // Navigation and Screen Management
 function showScreen(screenId) {
-    if (screenHistory[screenHistory.length - 1] !== screenId) {
-        screenHistory.push(screenId);
-    }
-    if (screenHistory.length > 10) {
-        screenHistory = screenHistory.slice(-10);
-    }
+    // Salva lo stato corrente
+    const currentScreen = screenHistory[screenHistory.length - 1];
     
+    // Se già siamo su questa schermata, non fare nulla
+    if (currentScreen === screenId) return;
+    
+    // Nascondi tutte le schermate
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.remove('active');
     });
     
+    // Mostra la nuova schermata
     const targetScreen = document.getElementById(screenId);
     if (targetScreen) {
-        targetScreen.classList.add('active');
+        targetScreen.style.display = 'block';
+        setTimeout(() => {
+            targetScreen.classList.add('active');
+        }, 10);
+        
+        // Aggiungi alla cronologia
+        screenHistory.push(screenId);
+        if (screenHistory.length > 10) {
+            screenHistory = screenHistory.slice(-10);
+        }
+        
+        // Scrolla in alto
         window.scrollTo(0, 0);
+        
+        // Inizializza il contenuto
         initializeScreenContent(screenId);
     }
     
+    // Aggiorna la tab bar
     updateTabBar(screenId);
+    
+    // Nascondi il pulsante di navigazione
     document.getElementById('fixed-navigate-btn').classList.add('hidden');
 }
 
 function goBack() {
     if (screenHistory.length > 1) {
+        // Rimuovi la schermata corrente
         screenHistory.pop();
+        
+        // Torna alla schermata precedente
         const previousScreen = screenHistory[screenHistory.length - 1];
-        showScreen(previousScreen);
+        
+        // Nascondi tutte le schermate
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        
+        // Mostra la schermata precedente
+        const targetScreen = document.getElementById(previousScreen);
+        if (targetScreen) {
+            targetScreen.style.display = 'block';
+            setTimeout(() => {
+                targetScreen.classList.add('active');
+            }, 10);
+            
+            // Inizializza il contenuto
+            initializeScreenContent(previousScreen);
+        }
+        
+        // Aggiorna la tab bar
+        updateTabBar(previousScreen);
     } else {
         showScreen('home-screen');
     }
@@ -1280,8 +1353,8 @@ async function saveFontana(e) {
     const anno = document.getElementById('fontana-anno').value;
     const descrizione = document.getElementById('fontana-descrizione').value;
     const storico = document.getElementById('fontana-storico').value;
-    const latitudine = parseFloat(document.getElementById('fontana-latitudine').value);
-    const longitudine = parseFloat(document.getElementById('fontana-longitudine').value);
+    const latitudine = parseFloat(document.getElementById('fontana-latitudine').value) || 0;
+    const longitudine = parseFloat(document.getElementById('fontana-longitudine').value) || 0;
     const immagine = document.getElementById('fontana-immagine').value;
     
     const fontanaData = {
@@ -1299,9 +1372,10 @@ async function saveFontana(e) {
     
     try {
         let savedId;
-        if (id) {
+        
+        if (id && id.trim() !== '') {
             // Update existing
-            savedId = await saveFirebaseData('fontane', { id, ...fontanaData }, true);
+            savedId = await saveFirebaseData('fontane', fontanaData, id);
             const index = appData.fontane.findIndex(f => f.id == id);
             if (index !== -1) {
                 appData.fontane[index] = { id, ...fontanaData };
@@ -1309,7 +1383,7 @@ async function saveFontana(e) {
             showToast('Fontana modificata con successo', 'success');
         } else {
             // Create new
-            savedId = await saveFirebaseData('fontane', fontanaData, false);
+            savedId = await saveFirebaseData('fontane', fontanaData);
             appData.fontane.push({ id: savedId, ...fontanaData });
             showToast(`Fontana aggiunta con successo (ID: ${savedId})`, 'success');
         }
@@ -1322,8 +1396,11 @@ async function saveFontana(e) {
         loadFontane();
         updateDashboardStats();
         
+        console.log('Fontana salvata con successo, ID:', savedId);
+        
     } catch (error) {
-        showToast('Errore nel salvataggio della fontana', 'error');
+        console.error('Errore nel salvataggio della fontana:', error);
+        showToast('Errore nel salvataggio della fontana: ' + error.message, 'error');
     }
 }
 
@@ -1395,9 +1472,11 @@ async function saveBeverino(e) {
     const nome = document.getElementById('beverino-nome').value;
     const indirizzo = document.getElementById('beverino-indirizzo').value;
     const stato = document.getElementById('beverino-stato').value;
-    const latitudine = parseFloat(document.getElementById('beverino-latitudine').value);
-    const longitudine = parseFloat(document.getElementById('beverino-longitudine').value);
+    const latitudine = parseFloat(document.getElementById('beverino-latitudine').value) || 0;
+    const longitudine = parseFloat(document.getElementById('beverino-longitudine').value) || 0;
     const immagine = document.getElementById('beverino-immagine').value;
+    
+    console.log('Dati beverino da salvare:', { id, nome, indirizzo, stato, latitudine, longitudine, immagine });
     
     const beverinoData = {
         nome,
@@ -1411,15 +1490,22 @@ async function saveBeverino(e) {
     
     try {
         let savedId;
-        if (id) {
-            savedId = await saveFirebaseData('beverini', { id, ...beverinoData }, true);
+        
+        if (id && id.trim() !== '') {
+            // Update existing
+            console.log('Aggiornamento beverino esistente ID:', id);
+            savedId = await saveFirebaseData('beverini', beverinoData, id);
+            
             const index = appData.beverini.findIndex(b => b.id == id);
             if (index !== -1) {
                 appData.beverini[index] = { id, ...beverinoData };
             }
             showToast('Beverino modificato con successo', 'success');
         } else {
-            savedId = await saveFirebaseData('beverini', beverinoData, false);
+            // Create new
+            console.log('Creazione nuovo beverino');
+            savedId = await saveFirebaseData('beverini', beverinoData);
+            
             appData.beverini.push({ id: savedId, ...beverinoData });
             showToast(`Beverino aggiunto con successo (ID: ${savedId})`, 'success');
         }
@@ -1428,11 +1514,15 @@ async function saveBeverino(e) {
         loadAdminBeverini();
         resetBeverinoForm();
         
+        // Update UI
         loadBeverini();
         updateDashboardStats();
         
+        console.log('Beverino salvato con successo, ID:', savedId);
+        
     } catch (error) {
-        showToast('Errore nel salvataggio del beverino', 'error');
+        console.error('Errore nel salvataggio del beverino:', error);
+        showToast('Errore nel salvataggio del beverino: ' + error.message, 'error');
     }
 }
 
@@ -1517,15 +1607,15 @@ async function saveNews(e) {
     
     try {
         let savedId;
-        if (id) {
-            savedId = await saveFirebaseData('news', { id, ...newsData }, true);
+        if (id && id.trim() !== '') {
+            savedId = await saveFirebaseData('news', newsData, id);
             const index = appData.news.findIndex(n => n.id == id);
             if (index !== -1) {
                 appData.news[index] = { id, ...newsData };
             }
             showToast('News modificata con successo', 'success');
         } else {
-            savedId = await saveFirebaseData('news', newsData, false);
+            savedId = await saveFirebaseData('news', newsData);
             appData.news.push({ id: savedId, ...newsData });
             showToast(`News aggiunta con successo (ID: ${savedId})`, 'success');
         }
@@ -1538,7 +1628,8 @@ async function saveNews(e) {
         updateDashboardStats();
         
     } catch (error) {
-        showToast('Errore nel salvataggio della news', 'error');
+        console.error('Errore nel salvataggio della news:', error);
+        showToast('Errore nel salvataggio della news: ' + error.message, 'error');
     }
 }
 
@@ -1725,7 +1816,7 @@ function handleFileImport(type, files) {
 }
 
 function importFontane(data) {
-    const newFontane = data.map((item, index) => ({
+    const newFontane = data.map((item) => ({
         nome: item.Nome || item.nome || '',
         indirizzo: item.Indirizzo || item.indirizzo || '',
         stato: item.Stato || item.stato || 'funzionante',
@@ -1738,25 +1829,30 @@ function importFontane(data) {
         last_modified: new Date().toISOString()
     }));
 
+    let importedCount = 0;
+    
     newFontane.forEach(async (fontana) => {
         try {
-            const id = await saveFirebaseData('fontane', fontana, false);
+            const id = await saveFirebaseData('fontane', fontana);
             appData.fontane.push({ id, ...fontana });
+            importedCount++;
+            
+            if (importedCount === newFontane.length) {
+                saveLocalData();
+                loadAdminFontane();
+                showToast(`${importedCount} fontane importate con successo!`, 'success');
+                logActivity(`${importedCount} fontane importate da Excel`);
+            }
         } catch (error) {
             console.error('Errore import fontana:', error);
         }
     });
 
-    saveLocalData();
-    loadAdminFontane();
-    showToast(`${newFontane.length} fontane importate con successo!`, 'success');
-    logActivity(`${newFontane.length} fontane importate da Excel`);
-
     return newFontane.length;
 }
 
 function importBeverini(data) {
-    const newBeverini = data.map((item, index) => ({
+    const newBeverini = data.map((item) => ({
         nome: item.Nome || item.nome || '',
         indirizzo: item.Indirizzo || item.indirizzo || '',
         stato: item.Stato || item.stato || 'funzionante',
@@ -1766,25 +1862,30 @@ function importBeverini(data) {
         last_modified: new Date().toISOString()
     }));
 
+    let importedCount = 0;
+    
     newBeverini.forEach(async (beverino) => {
         try {
-            const id = await saveFirebaseData('beverini', beverino, false);
+            const id = await saveFirebaseData('beverini', beverino);
             appData.beverini.push({ id, ...beverino });
+            importedCount++;
+            
+            if (importedCount === newBeverini.length) {
+                saveLocalData();
+                loadAdminBeverini();
+                showToast(`${importedCount} beverini importati con successo!`, 'success');
+                logActivity(`${importedCount} beverini importati da Excel`);
+            }
         } catch (error) {
             console.error('Errore import beverino:', error);
         }
     });
 
-    saveLocalData();
-    loadAdminBeverini();
-    showToast(`${newBeverini.length} beverini importati con successo!`, 'success');
-    logActivity(`${newBeverini.length} beverini importati da Excel`);
-
     return newBeverini.length;
 }
 
 function importNews(data) {
-    const newNews = data.map((item, index) => ({
+    const newNews = data.map((item) => ({
         titolo: item.Titolo || item.titolo || '',
         contenuto: item.Contenuto || item.contenuto || '',
         data: item.Data || item.data || new Date().toISOString().split('T')[0],
@@ -1793,19 +1894,24 @@ function importNews(data) {
         last_modified: new Date().toISOString()
     }));
 
+    let importedCount = 0;
+    
     newNews.forEach(async (news) => {
         try {
-            const id = await saveFirebaseData('news', news, false);
+            const id = await saveFirebaseData('news', news);
             appData.news.push({ id, ...news });
+            importedCount++;
+            
+            if (importedCount === newNews.length) {
+                saveLocalData();
+                loadAdminNews();
+                showToast(`${importedCount} news importate con successo!`, 'success');
+                logActivity(`${importedCount} news importate da Excel`);
+            }
         } catch (error) {
             console.error('Errore import news:', error);
         }
     });
-
-    saveLocalData();
-    loadAdminNews();
-    showToast(`${newNews.length} news importate con successo!`, 'success');
-    logActivity(`${newNews.length} news importate da Excel`);
 
     return newNews.length;
 }
@@ -1923,6 +2029,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Click outside admin auth modal to close
     document.getElementById('admin-auth').addEventListener('click', function(e) {
         if (e.target === this) {
             closeAdminAuth();
