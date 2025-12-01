@@ -4,46 +4,82 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fontane & Beverini - Napoli</title>
-    <meta name="description" content="Gestione intelligente delle risorse idriche cittadine di Napoli">
-    <meta name="theme-color" content="#3b82f6">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/x-icon" href="./images/icona-avvio-192.png">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="./images/icona-avvio-192.png">
     <link rel="apple-touch-icon" href="./images/icona-avvio-192.png">
     
-    <!-- Font e librerie esterne -->
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- XLSX Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js"></script>
+    <!-- CSS -->
+    <link rel="stylesheet" href="./style.css">
     
-    <!-- CSS locale -->
-    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvDfxm-LSAcu0NwtJ8DYxxrjY-83LlLPU",
+            authDomain: "abcnapolifontane.firebaseapp.com",
+            projectId: "abcnapolifontane",
+            storageBucket: "abcnapolifontane.firebasestorage.app",
+            messagingSenderId: "686936372148",
+            appId: "1:686936372148:web:4147bab1bab73583b638e1",
+            measurementId: "G-DPEC2SNGDM"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const storage = getStorage(app);
+
+        window.firebase = {
+            db, auth, storage,
+            collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy,
+            signInWithEmailAndPassword, onAuthStateChanged, signOut,
+            ref, uploadBytes, getDownloadURL
+        };
+
+        console.log("Firebase initialized successfully");
+    </script>
 </head>
 <body>
+    <!-- Offline Indicator -->
     <div class="offline-indicator" id="offline-indicator">
         <i class="fas fa-wifi"></i> Connessione assente
     </div>
+    
+    <!-- Toast Notifications -->
     <div class="toast" id="toast"></div>
 
-    <!-- Modal di autenticazione admin -->
+    <!-- Admin Authentication Modal -->
     <div class="auth-overlay" id="admin-auth">
         <div class="auth-modal">
             <h2 class="auth-title">Accesso Amministratore</h2>
-            <input type="password" class="auth-input" id="admin-password" placeholder="Inserisci password" autocomplete="off">
+            <input type="email" class="auth-input" id="admin-email" placeholder="Email" value="fontane.beverini.napoli@gmail.com">
+            <input type="password" class="auth-input" id="admin-password" placeholder="Password" value="@Fbnapoli1998">
             <button class="auth-btn" onclick="checkAdminAuth()">Accedi</button>
-            <div class="auth-error" id="auth-error">Password non valida</div>
-            <button class="auth-btn secondary" onclick="closeAdminAuth()" style="background: #6b7280;">Annulla</button>
+            <div class="auth-error" id="auth-error">Credenziali non valide</div>
         </div>
     </div>
 
+    <!-- Navigation Modal -->
     <div class="modal-overlay" id="navigation-modal">
         <div class="modal-content">
             <h3 class="modal-title">Scegli l'app di navigazione</h3>
@@ -61,6 +97,7 @@
         </div>
     </div>
 
+    <!-- Info Modal -->
     <div class="modal-overlay" id="info-modal">
         <div class="modal-content">
             <h3 class="modal-title" id="info-modal-title">Informazioni</h3>
@@ -71,6 +108,7 @@
         </div>
     </div>
 
+    <!-- Admin Panel -->
     <div class="admin-panel-overlay" id="admin-panel">
         <div class="admin-panel-content">
             <header class="admin-panel-header">
@@ -80,18 +118,14 @@
                 </button>
             </header>
 
-            <div class="admin-config-section">
-                <!-- Configurazione sicura - verrà popolata dinamicamente -->
-            </div>
-
             <div class="admin-tabs">
                 <button class="admin-tab-btn active" data-tab="dashboard-admin">Dashboard</button>
                 <button class="admin-tab-btn" data-tab="fontane-admin">Fontane</button>
                 <button class="admin-tab-btn" data-tab="beverini-admin">Beverini</button>
                 <button class="admin-tab-btn" data-tab="news-admin">News</button>
-                <button class="admin-tab-btn" data-tab="config-admin">Configurazione</button>
             </div>
 
+            <!-- Dashboard Tab -->
             <div class="admin-tab-content active" id="dashboard-admin">
                 <div class="dashboard-stats">
                     <div class="stat-card fontane">
@@ -138,44 +172,31 @@
                     </div>
                 </div>
 
-                <div class="recent-activity">
-                    <div class="activity-title">
-                        <span>Attività Recenti</span>
-                        <button class="admin-btn secondary" onclick="clearActivityLog()">
-                            <i class="fas fa-trash"></i> Pulisci
+                <div class="import-export-section">
+                    <h4>Import/Export Dati</h4>
+                    <div class="export-options">
+                        <button class="admin-btn secondary" onclick="exportToCSV('fontane')">
+                            <i class="fas fa-file-export"></i> Esporta Fontane CSV
+                        </button>
+                        <button class="admin-btn secondary" onclick="exportToCSV('beverini')">
+                            <i class="fas fa-file-export"></i> Esporta Beverini CSV
+                        </button>
+                        <button class="admin-btn secondary" onclick="exportToCSV('news')">
+                            <i class="fas fa-file-export"></i> Esporta News CSV
                         </button>
                     </div>
-                    <div class="activity-list" id="activity-list">
+
+                    <div class="import-options">
+                        <input type="file" id="import-csv-file" accept=".csv" style="display: none;" onchange="importFromCSV(this.files)">
+                        <button class="admin-btn secondary" onclick="document.getElementById('import-csv-file').click()">
+                            <i class="fas fa-file-import"></i> Importa da CSV
+                        </button>
                     </div>
                 </div>
             </div>
 
+            <!-- Fontane Tab -->
             <div class="admin-tab-content" id="fontane-admin">
-                <div class="sync-section">
-                    <button class="admin-btn primary" onclick="loadFromFirebase('fontane')">
-                        <i class="fas fa-download"></i> Carica da Firebase
-                    </button>
-                    <button class="admin-btn secondary" onclick="saveToFirebase('fontane')">
-                        <i class="fas fa-upload"></i> Salva su Firebase
-                    </button>
-                </div>
-
-                <div class="import-export-section">
-                    <h4>Import/Export Fontane</h4>
-                    <div class="import-options">
-                        <input type="file" id="import-fontane-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileImport('fontane', this.files)">
-                        <button class="admin-btn secondary" onclick="document.getElementById('import-fontane-file').click()">
-                            <i class="fas fa-file-import"></i> Importa Fontane
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('fontane')">
-                            <i class="fas fa-file-export"></i> Esporta Fontane
-                        </button>
-                        <button class="admin-btn secondary" onclick="downloadTemplate('fontane')">
-                            <i class="fas fa-download"></i> Template Fontane
-                        </button>
-                    </div>
-                </div>
-
                 <h3>Aggiungi/Modifica Fontana</h3>
                 <form id="fontana-form" onsubmit="saveFontana(event)">
                     <input type="hidden" id="fontana-id">
@@ -260,32 +281,8 @@
                 </div>
             </div>
 
+            <!-- Beverini Tab -->
             <div class="admin-tab-content" id="beverini-admin">
-                <div class="sync-section">
-                    <button class="admin-btn primary" onclick="loadFromFirebase('beverini')">
-                        <i class="fas fa-download"></i> Carica da Firebase
-                    </button>
-                    <button class="admin-btn secondary" onclick="saveToFirebase('beverini')">
-                        <i class="fas fa-upload"></i> Salva su Firebase
-                    </button>
-                </div>
-
-                <div class="import-export-section">
-                    <h4>Import/Export Beverini</h4>
-                    <div class="import-options">
-                        <input type="file" id="import-beverini-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileImport('beverini', this.files)">
-                        <button class="admin-btn secondary" onclick="document.getElementById('import-beverini-file').click()">
-                            <i class="fas fa-file-import"></i> Importa Beverini
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('beverini')">
-                            <i class="fas fa-file-export"></i> Esporta Beverini
-                        </button>
-                        <button class="admin-btn secondary" onclick="downloadTemplate('beverini')">
-                            <i class="fas fa-download"></i> Template Beverini
-                        </button>
-                    </div>
-                </div>
-
                 <h3>Aggiungi/Modifica Beverino</h3>
                 <form id="beverino-form" onsubmit="saveBeverino(event)">
                     <input type="hidden" id="beverino-id">
@@ -358,32 +355,8 @@
                 </div>
             </div>
 
+            <!-- News Tab -->
             <div class="admin-tab-content" id="news-admin">
-                <div class="sync-section">
-                    <button class="admin-btn primary" onclick="loadFromFirebase('news')">
-                        <i class="fas fa-download"></i> Carica da Firebase
-                    </button>
-                    <button class="admin-btn secondary" onclick="saveToFirebase('news')">
-                        <i class="fas fa-upload"></i> Salva su Firebase
-                    </button>
-                </div>
-
-                <div class="import-export-section">
-                    <h4>Import/Export News</h4>
-                    <div class="import-options">
-                        <input type="file" id="import-news-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileImport('news', this.files)">
-                        <button class="admin-btn secondary" onclick="document.getElementById('import-news-file').click()">
-                            <i class="fas fa-file-import"></i> Importa News
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('news')">
-                            <i class="fas fa-file-export"></i> Esporta News
-                        </button>
-                        <button class="admin-btn secondary" onclick="downloadTemplate('news')">
-                            <i class="fas fa-download"></i> Template News
-                        </button>
-                    </div>
-                </div>
-
                 <h3>Aggiungi/Modifica News</h3>
                 <form id="news-form" onsubmit="saveNews(event)">
                     <input type="hidden" id="news-id">
@@ -429,87 +402,12 @@
                     </table>
                 </div>
             </div>
-
-            <div class="admin-tab-content" id="config-admin">
-                <!-- Sezione Sicurezza Amministratore -->
-                <div class="backup-section">
-                    <h4>Sicurezza Amministratore</h4>
-                    <div class="sync-actions">
-                        <button class="admin-btn secondary" onclick="changeAdminPassword()">
-                            <i class="fas fa-key"></i> Cambia Password Admin
-                        </button>
-                        <button class="admin-btn secondary" onclick="logoutAdmin()">
-                            <i class="fas fa-sign-out-alt"></i> Logout Amministratore
-                        </button>
-                    </div>
-                </div>
-
-                <div class="backup-section">
-                    <h4>Gestione Backup</h4>
-                    <div class="config-item">
-                        <label for="backup-frequency">Frequenza Backup Automatico:</label>
-                        <select id="backup-frequency">
-                            <option value="daily">Giornaliero</option>
-                            <option value="weekly" selected>Settimanale</option>
-                            <option value="monthly">Mensile</option>
-                        </select>
-                    </div>
-                    <div class="config-item">
-                        <label for="max-backups">Numero Massimo Backup:</label>
-                        <input type="number" id="max-backups" value="10" min="1" max="50">
-                    </div>
-                    <div class="sync-actions">
-                        <button class="admin-btn primary" onclick="createBackup()">
-                            <i class="fas fa-save"></i> Crea Backup Manuale
-                        </button>
-                        <button class="admin-btn secondary" onclick="restoreFromBackup()">
-                            <i class="fas fa-history"></i> Ripristina da Backup
-                        </button>
-                    </div>
-
-                    <h4 style="margin-top: 20px;">Backup Disponibili</h4>
-                    <div class="backup-list" id="backup-list">
-                    </div>
-                </div>
-
-                <div class="import-export-section">
-                    <h4>Import/Export Dati in Excel</h4>
-                    <div class="export-options">
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('fontane')">
-                            <i class="fas fa-file-export"></i> Esporta Fontane
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('beverini')">
-                            <i class="fas fa-file-export"></i> Esporta Beverini
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('news')">
-                            <i class="fas fa-file-export"></i> Esporta News
-                        </button>
-                        <button class="admin-btn primary" onclick="exportAllDataToExcel()">
-                            <i class="fas fa-file-archive"></i> Esporta Tutto
-                        </button>
-                    </div>
-
-                    <div class="import-options">
-                        <input type="file" id="import-all-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileImport('all', this.files)">
-                        <button class="admin-btn secondary" onclick="document.getElementById('import-all-file').click()">
-                            <i class="fas fa-file-import"></i> Importa Tutto
-                        </button>
-                    </div>
-                </div>
-
-                <div class="backup-section" style="margin-top: 20px;">
-                    <h4>Manutenzione</h4>
-                    <div class="sync-actions">
-                        <button class="admin-btn secondary" onclick="resetToDefault()">
-                            <i class="fas fa-undo"></i> Ripristina Dati di Default
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
+    <!-- Main App Container -->
     <div class="app-container">
+        <!-- Home Screen -->
         <div class="screen active" id="home-screen">
             <div class="logo-container">
                 <div class="app-logo logo-with-image"></div>
@@ -577,7 +475,7 @@
                     </div>
                 </div>
             </div>
-            <button class="fixed-navigate-btn hidden" id="fixed-navigate-btn" onclick="navigateToFixed()">
+            <button class="fixed-navigate-btn hidden" id="fontane-navigate-btn" onclick="navigateToFixed()">
                 <i class="fas fa-map-marker-alt"></i> Naviga Verso
             </button>
         </div>
@@ -614,7 +512,7 @@
                     </div>
                 </div>
             </div>
-            <button class="fixed-navigate-btn hidden" id="fixed-navigate-btn" onclick="navigateToFixed()">
+            <button class="fixed-navigate-btn hidden" id="beverini-navigate-btn" onclick="navigateToFixed()">
                 <i class="fas fa-map-marker-alt"></i> Naviga Verso
             </button>
         </div>
@@ -647,7 +545,7 @@
                     <div class="loading-spinner"></div>
                 </div>
             </div>
-            <button class="fixed-navigate-btn hidden" id="fixed-navigate-btn" onclick="navigateToFixed()">
+            <button class="fixed-navigate-btn hidden" id="fontana-detail-navigate-btn" onclick="navigateToFixed()">
                 <i class="fas fa-map-marker-alt"></i> Naviga Verso
             </button>
         </div>
@@ -663,7 +561,7 @@
                     <div class="loading-spinner"></div>
                 </div>
             </div>
-            <button class="fixed-navigate-btn hidden" id="fixed-navigate-btn" onclick="navigateToFixed()">
+            <button class="fixed-navigate-btn hidden" id="beverino-detail-navigate-btn" onclick="navigateToFixed()">
                 <i class="fas fa-map-marker-alt"></i> Naviga Verso
             </button>
         </div>
@@ -730,13 +628,31 @@
         </div>
     </div>
 
+    <!-- Admin FAB (Hidden by default) -->
     <button class="admin-fab" onclick="openAdminPanel()" style="display: none;">
         <i class="fas fa-cog"></i>
     </button>
 
-    <!-- Scripts -->
+    <!-- JavaScript Libraries -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script src="app.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="./app.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrato con successo:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Registrazione Service Worker fallita:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
