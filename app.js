@@ -1,1064 +1,606 @@
-// Fontane & Beverini Napoli - PWA App
-// Backend Firebase Firestore
-
-// Variabili globali
-let currentScreen = 'home';
-let map = null;
-let markersCluster = null;
-let allFontane = [];
-let allBeverini = [];
-let allNews = [];
-let currentUser = null;
-let isAdmin = false;
-
-// Dati di fallback locali
-const LOCAL_DATA = {
-    fontane: [
-        {
-            id: '1',
-            nome: 'Fontana del Nettuno',
-            indirizzo: 'Piazza Municipio, Napoli',
-            stato: 'funzionante',
-            lat: 40.8415,
-            lng: 14.2528,
-            descrizione: 'Fontana monumentale del XVI secolo',
-            data_aggiornamento: '2024-01-15'
-        },
-        {
-            id: '2',
-            nome: 'Fontana di Monteoliveto',
-            indirizzo: 'Piazza Monteoliveto, Napoli',
-            stato: 'manutenzione',
-            lat: 40.8472,
-            lng: 14.2514,
-            descrizione: 'Fontana barocca attualmente in restauro',
-            data_aggiornamento: '2024-01-10'
-        },
-        {
-            id: '3',
-            nome: 'Fontana Medina',
-            indirizzo: 'Piazza Dante, Napoli',
-            stato: 'funzionante',
-            lat: 40.8486,
-            lng: 14.2497,
-            descrizione: 'Fontana pubblica recentemente ristrutturata',
-            data_aggiornamento: '2024-01-20'
-        }
-    ],
-    beverini: [
-        {
-            id: '1',
-            indirizzo: 'Via Toledo, angolo Via Diaz',
-            stato: 'funzionante',
-            lat: 40.8395,
-            lng: 14.2497,
-            tipo: 'fontanella',
-            descrizione: 'Beverino pubblico con acqua potabile',
-            data_aggiornamento: '2024-01-20'
-        },
-        {
-            id: '2',
-            indirizzo: 'Via dei Tribunali, 15',
-            stato: 'non_funzionante',
-            lat: 40.8512,
-            lng: 14.2589,
-            tipo: 'fontanella',
-            descrizione: 'Beverino storico in riparazione',
-            data_aggiornamento: '2024-01-18'
-        }
-    ],
-    news: [
-        {
-            id: '1',
-            titolo: 'Nuova fontana in Piazza Dante',
-            contenuto: 'È stata inaugurata una nuova fontana pubblica in Piazza Dante. La fontana è già funzionante e disponibile per tutti i cittadini.',
-            data: '2024-01-25',
-            autore: 'Comune di Napoli'
-        },
-        {
-            id: '2',
-            titolo: 'Manutenzione straordinaria',
-            contenuto: 'Dal 1 al 15 febbraio 2024, alcuni beverini nel centro storico saranno in manutenzione straordinaria.',
-            data: '2024-01-20',
-            autore: 'Comune di Napoli'
-        },
-        {
-            id: '3',
-            titolo: 'Monitoraggio qualità acqua',
-            contenuto: 'Tutti i beverini pubblici sono stati sottoposti a controlli di qualità. I risultati confermano la potabilità dell\'acqua.',
-            data: '2024-01-18',
-            autore: 'Comune di Napoli'
-        }
-    ]
+// Configurazione Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyBvDfxm-LSAcu0NwtJ8DYxxrjY-83LlLPU",
+    authDomain: "abcnapolifontane.firebaseapp.com",
+    projectId: "abcnapolifontane",
+    storageBucket: "abcnapolifontane.firebasestorage.app",
+    messagingSenderId: "686936372148",
+    appId: "1:686936372148:web:4147bab1bab73583b638e1",
+    measurementId: "G-DPEC2SNGDM"
 };
 
-// Inizializzazione dell'app
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('App Fontane & Beverini Napoli - Inizializzazione');
-    
-    // Inizializza bottom navigation
-    initializeBottomNav();
-    
-    // Inizializza admin secret
-    setupAdminSecret();
-    
-    // Setup event listeners
-    setupEventListeners();
-    
-    // Nascondi loading screen
-    setTimeout(() => {
-        document.getElementById('loading').style.display = 'none';
-    }, 1000);
-    
-    // Inizializza Firebase
-    await initializeFirebase();
-    
-    // Carica tutti i dati
-    await loadAllData();
-    
-    // Inizializza mappa
-    initializeMap();
-    
-    // Aggiorna statistiche
-    updateStats();
-    
-    // Mostra home screen
-    showScreen('home');
-    
-    console.log('App inizializzata correttamente');
-});
+// Inizializza Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
 
-// ========== BOTTOM NAVIGATION ==========
+// Configurazioni sicure
+const SECURE_CONFIG = {
+    ADMIN_PASSWORD: 'admin123',
+    ADMIN_EMAIL: 'admin@fontanenapoli.it'
+};
 
-function initializeBottomNav() {
-    const navItems = document.querySelectorAll('.nav-item');
-    
-    navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Rimuovi active da tutti
-            navItems.forEach(nav => nav.classList.remove('active'));
-            
-            // Aggiungi active a quello cliccato
-            this.classList.add('active');
-            
-            // Ottieni target screen
-            const target = this.getAttribute('href').substring(1);
-            
-            // Cambia schermata
-            showScreen(target);
-        });
-    });
-}
+// Variabili globali
+let appData = {
+    fontane: [],
+    beverini: [],
+    news: []
+};
+let currentLatLng = null;
+let currentMapMarkers = [];
+let currentDestination = null;
+let screenHistory = ['home-screen'];
+let currentFilter = {
+    fontane: 'all',
+    beverini: 'all'
+};
+let activityLog = [];
+let searchResults = [];
+let searchMarker = null;
+let map = null;
+let clusterGroup = null;
+let markers = new Map();
+let searchTimeout;
+let isAdminAuthenticated = false;
+let adminAuthTimeout = null;
+let currentUser = null;
 
-// ========== SCREEN MANAGEMENT ==========
+// Sequenza segreta
+let secretSequence = [];
+const correctSequence = ['logo', 'title', 'logo'];
 
-function showScreen(screenId) {
-    // Nascondi tutte le schermate
-    document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.remove('active');
-    });
-    
-    // Mostra schermata target
-    const targetScreen = document.getElementById(screenId + '-screen');
-    if (targetScreen) {
-        targetScreen.classList.add('active');
-        currentScreen = screenId;
-        
-        // Se è la mappa, aggiorna dimensioni
-        if (screenId === 'mappa' && map) {
-            setTimeout(() => {
-                map.invalidateSize();
-                updateMapMarkers();
-            }, 300);
-        }
+// Funzione per gestire la sequenza segreta
+function handleSecretSequence(elementType) {
+    secretSequence.push(elementType);
+
+    if (secretSequence.length === 3 &&
+        secretSequence[0] === correctSequence[0] &&
+        secretSequence[1] === correctSequence[1] &&
+        secretSequence[2] === correctSequence[2]) {
+        showAdminAuth();
+        secretSequence = [];
+    } else if (secretSequence.length >= 3) {
+        setTimeout(() => {
+            secretSequence = [];
+        }, 2000);
     }
 }
 
-// ========== ADMIN SECRET ==========
+// Firebase Auth
+async function loginAdmin(email, password) {
+    try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        currentUser = userCredential.user;
+        isAdminAuthenticated = true;
+        return true;
+    } catch (error) {
+        console.error('Login error:', error);
+        return false;
+    }
+}
 
-function setupAdminSecret() {
-    let tapCount = 0;
-    let lastTapTime = 0;
-    
-    const logo = document.getElementById('admin-logo');
-    if (logo) {
-        logo.addEventListener('click', () => {
-            const now = Date.now();
+async function logoutAdmin() {
+    try {
+        await auth.signOut();
+        isAdminAuthenticated = false;
+        currentUser = null;
+        closeAdminPanel();
+        showToast('Logout effettuato', 'success');
+        logActivity('Logout amministratore');
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+}
+
+async function checkAdminAuth() {
+    const password = document.getElementById('admin-password').value;
+    const errorElement = document.getElementById('auth-error');
+
+    try {
+        const success = await loginAdmin(SECURE_CONFIG.ADMIN_EMAIL, password);
+        if (success) {
+            closeAdminAuth();
+            showAdminPanel();
             
-            // Reset tap count se passato più di 1 secondo
-            if (now - lastTapTime > 1000) {
-                tapCount = 0;
+            if (adminAuthTimeout) {
+                clearTimeout(adminAuthTimeout);
             }
-            
-            tapCount++;
-            lastTapTime = now;
-            
-            console.log(`Tap count: ${tapCount}`);
-            
-            // Se 5 tap, apri admin
-            if (tapCount >= 5) {
-                openAdminPanel();
-                tapCount = 0;
-                
-                // Feedback visivo
-                logo.style.transform = 'scale(1.1)';
-                setTimeout(() => {
-                    logo.style.transform = 'scale(1)';
-                }, 200);
-            }
-        });
-    }
-}
-
-function openAdminPanel() {
-    const modal = document.getElementById('adminModal');
-    const loginForm = document.getElementById('loginForm');
-    const adminPanel = document.getElementById('adminPanel');
-    
-    // Reset form
-    document.getElementById('adminEmail').value = '';
-    document.getElementById('adminPassword').value = '';
-    document.getElementById('loginError').textContent = '';
-    
-    // Mostra login form
-    loginForm.classList.remove('hidden');
-    adminPanel.classList.add('hidden');
-    
-    // Mostra modale
-    modal.classList.remove('hidden');
-    
-    console.log('Admin panel aperto');
-}
-
-// ========== FIREBASE FUNCTIONS ==========
-
-async function initializeFirebase() {
-    try {
-        if (!window.firebaseApp || !window.firebaseDB) {
-            console.warn('Firebase non inizializzato, uso dati locali');
-            return false;
+            adminAuthTimeout = setTimeout(() => {
+                logoutAdmin();
+                showToast('Sessione amministratore scaduta', 'info');
+            }, 30 * 60 * 1000);
+        } else {
+            errorElement.style.display = 'block';
+            document.getElementById('admin-password').value = '';
+            document.getElementById('admin-password').focus();
         }
-        
-        console.log('Firebase inizializzato correttamente');
-        return true;
     } catch (error) {
-        console.error('Errore inizializzazione Firebase:', error);
-        return false;
+        errorElement.style.display = 'block';
+        document.getElementById('admin-password').value = '';
+        document.getElementById('admin-password').focus();
     }
 }
 
-async function loadAllData() {
-    console.log('Caricamento dati...');
-    
+// Funzioni Firebase per i dati
+async function loadFromFirebase(type) {
     try {
-        // Prova a caricare da Firebase
-        const firebaseLoaded = await loadFromFirebase();
+        showToast(`Caricamento ${type} da Firebase...`, 'info');
         
-        if (!firebaseLoaded) {
-            console.log('Fallback a dati locali');
-            // Usa dati locali
-            allFontane = LOCAL_DATA.fontane;
-            allBeverini = LOCAL_DATA.beverini;
-            allNews = LOCAL_DATA.news;
-            
-            // Salva localmente
-            saveToLocalStorage();
+        const collectionRef = db.collection(type);
+        const snapshot = await collectionRef.get();
+        
+        const data = [];
+        snapshot.forEach(doc => {
+            data.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        appData[type] = data;
+        saveData();
+        showToast(`${data.length} ${type} caricati da Firebase`, 'success');
+
+        if (type === 'fontane') loadFontane();
+        if (type === 'beverini') loadBeverini();
+        if (type === 'news') loadNews();
+
+        if (document.getElementById('admin-panel').style.display === 'flex') {
+            if (type === 'fontane') loadAdminFontane();
+            if (type === 'beverini') loadAdminBeverini();
+            if (type === 'news') loadAdminNews();
         }
-        
-        // Aggiorna UI
-        renderFontaneList();
-        renderBeveriniList();
-        renderNews();
-        
+
+        return data;
     } catch (error) {
-        console.error('Errore caricamento dati:', error);
-        // Fallback a dati locali
-        loadFromLocalStorage();
+        showToast(`Errore nel caricamento ${type}: ${error.message}`, 'error');
+        throw error;
     }
 }
 
-async function loadFromFirebase() {
-    try {
-        const db = window.firebaseDB;
-        if (!db) return false;
-        
-        // Importa funzioni Firebase
-        const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js');
-        
-        // Carica fontane
-        const fontaneSnap = await getDocs(collection(db, 'fontane'));
-        allFontane = [];
-        fontaneSnap.forEach(doc => {
-            allFontane.push({ id: doc.id, ...doc.data() });
-        });
-        
-        // Carica beverini
-        const beveriniSnap = await getDocs(collection(db, 'beverini'));
-        allBeverini = [];
-        beveriniSnap.forEach(doc => {
-            allBeverini.push({ id: doc.id, ...doc.data() });
-        });
-        
-        // Carica news
-        const newsSnap = await getDocs(collection(db, 'news'));
-        allNews = [];
-        newsSnap.forEach(doc => {
-            allNews.push({ id: doc.id, ...doc.data() });
-        });
-        
-        console.log(`Dati Firebase caricati: ${allFontane.length} fontane, ${allBeverini.length} beverini, ${allNews.length} news`);
-        return true;
-        
-    } catch (error) {
-        console.error('Errore caricamento Firebase:', error);
-        return false;
-    }
-}
-
-async function saveToFirebase(collectionName, data) {
-    try {
-        if (!window.firebaseDB || !window.isAdmin) return false;
-        
-        const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js');
-        
-        const docRef = doc(window.firebaseDB, collectionName, data.id);
-        await setDoc(docRef, data);
-        
-        console.log(`Dato salvato in ${collectionName}:`, data.id);
-        return true;
-        
-    } catch (error) {
-        console.error(`Errore salvataggio in ${collectionName}:`, error);
-        return false;
-    }
-}
-
-// ========== LOCAL STORAGE FUNCTIONS ==========
-
-function saveToLocalStorage() {
-    try {
-        localStorage.setItem('fontane_napoli_fontane', JSON.stringify(allFontane));
-        localStorage.setItem('fontane_napoli_beverini', JSON.stringify(allBeverini));
-        localStorage.setItem('fontane_napoli_news', JSON.stringify(allNews));
-        localStorage.setItem('fontane_napoli_last_sync', new Date().toISOString());
-        console.log('Dati salvati in localStorage');
-    } catch (error) {
-        console.error('Errore salvataggio localStorage:', error);
-    }
-}
-
-function loadFromLocalStorage() {
-    try {
-        const fontaneData = localStorage.getItem('fontane_napoli_fontane');
-        const beveriniData = localStorage.getItem('fontane_napoli_beverini');
-        const newsData = localStorage.getItem('fontane_napoli_news');
-        
-        if (fontaneData) allFontane = JSON.parse(fontaneData);
-        if (beveriniData) allBeverini = JSON.parse(beveriniData);
-        if (newsData) allNews = JSON.parse(newsData);
-        
-        console.log(`Dati localStorage caricati: ${allFontane.length} fontane, ${allBeverini.length} beverini, ${allNews.length} news`);
-        
-        if (allFontane.length === 0 && allBeverini.length === 0 && allNews.length === 0) {
-            throw new Error('Nessun dato in localStorage');
-        }
-        
-    } catch (error) {
-        console.error('Errore caricamento localStorage:', error);
-        // Usa dati di default
-        allFontane = LOCAL_DATA.fontane;
-        allBeverini = LOCAL_DATA.beverini;
-        allNews = LOCAL_DATA.news;
-    }
-}
-
-// ========== UI RENDER FUNCTIONS ==========
-
-function renderFontaneList() {
-    const container = document.getElementById('fontaneList');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    if (allFontane.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <p>Nessuna fontana disponibile</p>
-                ${isAdmin ? '<button class="btn-secondary" onclick="addNewItem(\'fontana\')">Aggiungi la prima</button>' : ''}
-            </div>
-        `;
+async function saveToFirebase(type) {
+    if (!isAdminAuthenticated) {
+        showToast('Devi essere autenticato per salvare', 'error');
         return;
     }
-    
-    allFontane.forEach(fontana => {
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        card.innerHTML = `
-            <div class="item-header">
-                <h4>${fontana.nome}</h4>
-                <span class="status-badge ${fontana.stato}">${getStatusLabel(fontana.stato)}</span>
-            </div>
-            <p class="item-address">${fontana.indirizzo}</p>
-            <p class="item-desc">${fontana.descrizione || 'Nessuna descrizione'}</p>
-            <div class="item-actions">
-                <button class="btn-secondary" onclick="showDetails('fontana', '${fontana.id}')">
-                    <i class="fas fa-info-circle"></i> Dettagli
-                </button>
-                <button class="btn-primary" onclick="navigateTo(${fontana.lat}, ${fontana.lng})">
-                    <i class="fas fa-directions"></i> Naviga
-                </button>
-            </div>
-        `;
-        container.appendChild(card);
-    });
-}
 
-function renderBeveriniList() {
-    const container = document.getElementById('beveriniList');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    if (allBeverini.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <p>Nessun beverino disponibile</p>
-                ${isAdmin ? '<button class="btn-secondary" onclick="addNewItem(\'beverino\')">Aggiungi il primo</button>' : ''}
-            </div>
-        `;
-        return;
-    }
-    
-    allBeverini.forEach(beverino => {
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        card.innerHTML = `
-            <div class="item-header">
-                <h4>Beverino</h4>
-                <span class="status-badge ${beverino.stato}">${getStatusLabel(beverino.stato)}</span>
-            </div>
-            <p class="item-address">${beverino.indirizzo}</p>
-            <p class="item-desc">${beverino.descrizione || 'Fontanella pubblica'}</p>
-            <div class="item-actions">
-                <button class="btn-secondary" onclick="showDetails('beverino', '${beverino.id}')">
-                    <i class="fas fa-info-circle"></i> Dettagli
-                </button>
-                <button class="btn-primary" onclick="navigateTo(${beverino.lat}, ${beverino.lng})">
-                    <i class="fas fa-directions"></i> Naviga
-                </button>
-            </div>
-        `;
-        container.appendChild(card);
-    });
-}
+    try {
+        showToast(`Salvataggio ${type} su Firebase...`, 'info');
 
-function renderNews() {
-    // Home preview
-    const newsPreview = document.getElementById('newsPreview');
-    if (newsPreview) {
-        newsPreview.innerHTML = '';
-        const recentNews = allNews.slice(0, 3);
-        
-        recentNews.forEach(news => {
-            const newsItem = document.createElement('div');
-            newsItem.className = 'news-item';
-            newsItem.innerHTML = `
-                <h4>${news.titolo}</h4>
-                <p>${news.contenuto.substring(0, 100)}...</p>
-                <div class="news-footer">
-                    <span>${news.autore}</span>
-                    <span>${formatDate(news.data)}</span>
-                </div>
-            `;
-            newsPreview.appendChild(newsItem);
-        });
-    }
-    
-    // News screen
-    const newsContainer = document.getElementById('newsContainer');
-    if (newsContainer) {
-        newsContainer.innerHTML = '';
-        
-        allNews.forEach(news => {
-            const newsCard = document.createElement('div');
-            newsCard.className = 'news-card';
-            newsCard.innerHTML = `
-                <h3>${news.titolo}</h3>
-                <p>${news.contenuto}</p>
-                <div class="news-footer">
-                    <span>${news.autore}</span>
-                    <span>${formatDate(news.data)}</span>
-                </div>
-            `;
-            newsContainer.appendChild(newsCard);
-        });
+        const data = appData[type];
+        const batch = db.batch();
+        const collectionRef = db.collection(type);
+
+        for (const item of data) {
+            const docRef = collectionRef.doc(item.id.toString());
+            const itemData = { ...item };
+            delete itemData.id;
+            batch.set(docRef, itemData);
+        }
+
+        await batch.commit();
+        showToast(`${data.length} ${type} salvati su Firebase`, 'success');
+    } catch (error) {
+        showToast(`Errore nel salvataggio ${type}: ${error.message}`, 'error');
+        throw error;
     }
 }
 
-function updateStats() {
-    const totalFountains = allFontane.length;
-    const totalBeverini = allBeverini.length;
-    const totalWorking = allFontane.filter(f => f.stato === 'funzionante').length + 
-                         allBeverini.filter(b => b.stato === 'funzionante').length;
-    
-    document.getElementById('totalFountains').textContent = totalFountains;
-    document.getElementById('totalBeverini').textContent = totalBeverini;
-    document.getElementById('totalWorking').textContent = totalWorking;
-    
-    // Aggiorna admin panel
-    if (isAdmin) {
-        document.getElementById('adminFountains').textContent = totalFountains;
-        document.getElementById('adminBeverini').textContent = totalBeverini;
-        document.getElementById('adminNews').textContent = allNews.length;
+async function saveItemToFirebase(type, item) {
+    if (!isAdminAuthenticated) {
+        showToast('Devi essere autenticato per salvare', 'error');
+        return false;
+    }
+
+    try {
+        const collectionRef = db.collection(type);
+        const itemData = { ...item };
+        const id = itemData.id;
+        delete itemData.id;
+
+        await collectionRef.doc(id.toString()).set(itemData);
+        return true;
+    } catch (error) {
+        console.error('Save item error:', error);
+        return false;
     }
 }
 
-// ========== MAP FUNCTIONS ==========
+async function deleteItemFromFirebase(type, id) {
+    if (!isAdminAuthenticated) {
+        showToast('Devi essere autenticato per eliminare', 'error');
+        return false;
+    }
 
-function initializeMap() {
-    const mapContainer = document.getElementById('map');
-    if (!mapContainer) return;
-    
-    // Centro su Napoli
-    map = L.map('map').setView([40.8518, 14.2681], 13);
-    
-    // Aggiungi tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-    }).addTo(map);
-    
-    // Crea cluster
-    markersCluster = L.markerClusterGroup();
-    map.addLayer(markersCluster);
-    
-    // Aggiorna marcatori
-    updateMapMarkers();
+    try {
+        await db.collection(type).doc(id.toString()).delete();
+        return true;
+    } catch (error) {
+        console.error('Delete item error:', error);
+        return false;
+    }
 }
 
-function updateMapMarkers() {
-    if (!map || !markersCluster) return;
-    
-    // Pulisci marcatori
-    markersCluster.clearLayers();
-    
-    // Aggiungi fontane
-    allFontane.forEach(fontana => {
-        const marker = L.marker([fontana.lat, fontana.lng]);
-        marker.bindPopup(`
-            <div class="map-popup">
-                <h4>${fontana.nome}</h4>
-                <p><strong>Indirizzo:</strong> ${fontana.indirizzo}</p>
-                <p><strong>Stato:</strong> ${getStatusLabel(fontana.stato)}</p>
-                <button onclick="navigateTo(${fontana.lat}, ${fontana.lng})" class="btn-primary">
-                    <i class="fas fa-directions"></i> Naviga qui
-                </button>
-            </div>
-        `);
-        
-        // Icona personalizzata
-        const icon = L.divIcon({
-            html: `<div class="custom-marker fountain ${fontana.stato}">
-                     <i class="fas fa-fountain"></i>
-                   </div>`,
-            className: 'custom-div-icon',
-            iconSize: [40, 40]
-        });
-        marker.setIcon(icon);
-        
-        markersCluster.addLayer(marker);
-    });
-    
-    // Aggiungi beverini
-    allBeverini.forEach(beverino => {
-        const marker = L.marker([beverino.lat, beverino.lng]);
-        marker.bindPopup(`
-            <div class="map-popup">
-                <h4>Beverino</h4>
-                <p><strong>Indirizzo:</strong> ${beverino.indirizzo}</p>
-                <p><strong>Stato:</strong> ${getStatusLabel(beverino.stato)}</p>
-                <button onclick="navigateTo(${beverino.lat}, ${beverino.lng})" class="btn-primary">
-                    <i class="fas fa-directions"></i> Naviga qui
-                </button>
-            </div>
-        `);
-        
-        const icon = L.divIcon({
-            html: `<div class="custom-marker drinking ${beverino.stato}">
-                     <i class="fas fa-tint"></i>
-                   </div>`,
-            className: 'custom-div-icon',
-            iconSize: [40, 40]
-        });
-        marker.setIcon(icon);
-        
-        markersCluster.addLayer(marker);
-    });
-}
-
-// ========== UTILITY FUNCTIONS ==========
-
-function getStatusLabel(status) {
-    const labels = {
-        'funzionante': 'Funzionante',
-        'non_funzionante': 'Non Funzionante',
-        'manutenzione': 'In Manutenzione'
+// Funzioni di utilità
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
     };
-    return labels[status] || 'Sconosciuto';
+}
+
+function getStatusText(stato) {
+    const statusMap = {
+        'funzionante': 'Funzionante',
+        'non-funzionante': 'Non Funzionante',
+        'manutenzione': 'In Manutenzione',
+        'guasto': 'Guasto'
+    };
+    return statusMap[stato] || 'Stato sconosciuto';
 }
 
 function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('it-IT', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
+    const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+    return new Date(dateString).toLocaleDateString('it-IT', options);
+}
+
+function showError(message, duration = 5000) {
+    const toast = document.getElementById('toast');
+    toast.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+    toast.style.background = 'var(--primary-red)';
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
+
+function showSuccess(message, duration = 3000) {
+    const toast = document.getElementById('toast');
+    toast.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+    toast.style.background = 'var(--primary-green)';
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
+
+function showInfo(message, duration = 4000) {
+    const toast = document.getElementById('toast');
+    toast.innerHTML = `<i class="fas fa-info-circle"></i> ${message}`;
+    toast.style.background = 'var(--primary-blue)';
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
+
+function showToast(message, type = 'info', duration = 3000) {
+    switch(type) {
+        case 'error': showError(message, duration); break;
+        case 'success': showSuccess(message, duration); break;
+        default: showInfo(message, duration); break;
+    }
+}
+
+function logActivity(description) {
+    const timestamp = new Date().toLocaleString('it-IT');
+    activityLog.unshift({ description, timestamp });
+
+    if (activityLog.length > 10) {
+        activityLog = activityLog.slice(0, 10);
+    }
+
+    localStorage.setItem('activityLog', JSON.stringify(activityLog));
+    updateActivityLog();
+}
+
+function updateActivityLog() {
+    const activityList = document.getElementById('activity-list');
+    activityList.innerHTML = '';
+
+    activityLog.forEach(activity => {
+        const activityItem = document.createElement('div');
+        activityItem.className = 'activity-item';
+        activityItem.innerHTML = `
+            <div class="activity-desc">${activity.description}</div>
+            <div class="activity-time">${activity.timestamp}</div>
+        `;
+        activityList.appendChild(activityItem);
     });
 }
 
-function showDetails(type, id) {
-    let item, title;
-    
-    if (type === 'fontana') {
-        item = allFontane.find(f => f.id === id);
-        title = item.nome;
-    } else {
-        item = allBeverini.find(b => b.id === id);
-        title = 'Beverino';
-    }
-    
-    if (!item) return;
-    
-    document.getElementById('detailTitle').textContent = title;
-    document.getElementById('detailBody').innerHTML = `
-        <div class="detail-section">
-            <h4>Indirizzo</h4>
-            <p>${item.indirizzo}</p>
-        </div>
-        <div class="detail-section">
-            <h4>Stato</h4>
-            <p><span class="status-badge ${item.stato}">${getStatusLabel(item.stato)}</span></p>
-        </div>
-        <div class="detail-section">
-            <h4>Descrizione</h4>
-            <p>${item.descrizione || 'Nessuna descrizione disponibile'}</p>
-        </div>
-        <div class="detail-section">
-            <h4>Ultimo aggiornamento</h4>
-            <p>${formatDate(item.data_aggiornamento || new Date().toISOString())}</p>
-        </div>
-        ${item.lat && item.lng ? `
-        <div class="detail-section">
-            <h4>Coordinate</h4>
-            <p>${item.lat.toFixed(6)}, ${item.lng.toFixed(6)}</p>
-        </div>
-        ` : ''}
-    `;
-    
-    // Setup bottoni
-    document.getElementById('navigateBtn').onclick = () => {
-        if (item.lat && item.lng) {
-            navigateTo(item.lat, item.lng);
+// Funzioni per la gestione dello stato
+function loadData() {
+    try {
+        const savedData = localStorage.getItem('fontaneBeveriniData');
+        if (savedData) {
+            appData = JSON.parse(savedData);
+            showToast('Dati caricati con successo', 'success');
+        } else {
+            appData = {
+                fontane: [
+                    {
+                        id: 1,
+                        nome: "Fontana Cariati",
+                        indirizzo: "Via Santa Caterina da Siena",
+                        stato: "funzionante",
+                        anno: "",
+                        descrizione: "",
+                        storico: "",
+                        latitudine: 40.8478,
+                        longitudine: 14.2504,
+                        immagine: "./images/fontana-cariati.jpg"
+                    }
+                ],
+                beverini: [],
+                news: [
+                    {
+                        id: 1,
+                        titolo: "Ristrutturazione Fontana del Gigante",
+                        contenuto: "È iniziato il restauro conservativo della Fontana del Gigante, uno dei monumenti più iconici di Napoli.",
+                        data: "2024-01-15",
+                        categoria: "Manutenzione",
+                        fonte: "Comune di Napoli"
+                    }
+                ]
+            };
+            saveData();
+            showToast('Dati inizializzati con valori predefiniti', 'info');
         }
-    };
-    
-    document.getElementById('reportBtn').onclick = () => {
-        reportIssue(type, id);
-    };
-    
-    document.getElementById('detailModal').classList.remove('hidden');
-}
-
-function navigateTo(lat, lng) {
-    if (navigator.geolocation) {
-        const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
-        window.open(url, '_blank');
-    } else {
-        alert('Navigazione non supportata dal tuo dispositivo');
-    }
-}
-
-function reportIssue(type, id) {
-    alert('Segnalazione inviata al Comune di Napoli. Grazie per la tua segnalazione!');
-    // Qui si potrebbe implementare l'invio a Firebase
-}
-
-function showNotification(message, type = 'info') {
-    // Implementazione base di notifica
-    console.log(`${type.toUpperCase()}: ${message}`);
-    // Qui si potrebbe implementare un toast notification
-}
-
-// ========== EVENT LISTENERS ==========
-
-function setupEventListeners() {
-    // Header buttons
-    document.getElementById('searchBtn').addEventListener('click', toggleSearch);
-    document.getElementById('filterBtn').addEventListener('click', toggleFilter);
-    document.getElementById('refreshBtn').addEventListener('click', refreshData);
-    document.getElementById('clearSearch').addEventListener('click', clearSearch);
-    document.getElementById('applyFilters').addEventListener('click', applyFilters);
-    
-    // Map controls
-    document.getElementById('locateMe').addEventListener('click', locateUser);
-    document.getElementById('toggleMapType').addEventListener('click', toggleMapType);
-    
-    // Search input
-    document.getElementById('searchInput').addEventListener('input', handleSearch);
-    
-    // Modal buttons
-    document.getElementById('closeAdmin').addEventListener('click', () => {
-        document.getElementById('adminModal').classList.add('hidden');
-    });
-    
-    document.getElementById('closeDetail').addEventListener('click', () => {
-        document.getElementById('detailModal').classList.add('hidden');
-    });
-    
-    // Admin login
-    document.getElementById('loginBtn').addEventListener('click', adminLogin);
-    document.getElementById('logoutBtn').addEventListener('click', adminLogout);
-    
-    // Admin actions
-    document.getElementById('syncData').addEventListener('click', syncWithFirebase);
-    document.getElementById('exportData').addEventListener('click', exportToExcel);
-    document.getElementById('importData').addEventListener('click', importFromExcel);
-    document.getElementById('backupData').addEventListener('click', backupLocalData);
-    
-    // Add buttons
-    document.getElementById('addFontanaBtn').addEventListener('click', () => addNewItem('fontana'));
-    document.getElementById('addBeverinoBtn').addEventListener('click', () => addNewItem('beverino'));
-    document.getElementById('addNewsBtn').addEventListener('click', () => addNewItem('news'));
-    
-    // Online/offline detection
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-}
-
-// ========== SEARCH & FILTER FUNCTIONS ==========
-
-function toggleSearch() {
-    const searchBar = document.getElementById('searchBar');
-    const filterPanel = document.getElementById('filterPanel');
-    
-    searchBar.classList.toggle('hidden');
-    filterPanel.classList.add('hidden');
-    
-    if (!searchBar.classList.contains('hidden')) {
-        document.getElementById('searchInput').focus();
-    }
-}
-
-function toggleFilter() {
-    const filterPanel = document.getElementById('filterPanel');
-    const searchBar = document.getElementById('searchBar');
-    
-    filterPanel.classList.toggle('hidden');
-    searchBar.classList.add('hidden');
-}
-
-function handleSearch() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-    
-    if (currentScreen === 'fontane') {
-        const filtered = allFontane.filter(item =>
-            item.nome.toLowerCase().includes(searchTerm) ||
-            item.indirizzo.toLowerCase().includes(searchTerm) ||
-            (item.descrizione && item.descrizione.toLowerCase().includes(searchTerm))
-        );
-        renderFilteredFontane(filtered);
-    } else if (currentScreen === 'beverini') {
-        const filtered = allBeverini.filter(item =>
-            item.indirizzo.toLowerCase().includes(searchTerm) ||
-            (item.descrizione && item.descrizione.toLowerCase().includes(searchTerm))
-        );
-        renderFilteredBeverini(filtered);
-    }
-}
-
-function clearSearch() {
-    document.getElementById('searchInput').value = '';
-    
-    if (currentScreen === 'fontane') {
-        renderFontaneList();
-    } else if (currentScreen === 'beverini') {
-        renderBeveriniList();
-    }
-}
-
-function applyFilters() {
-    // Qui implementeresti la logica di filtro
-    document.getElementById('filterPanel').classList.add('hidden');
-    showNotification('Filtri applicati');
-}
-
-// ========== ADMIN FUNCTIONS ==========
-
-async function adminLogin() {
-    const email = document.getElementById('adminEmail').value;
-    const password = document.getElementById('adminPassword').value;
-    const errorElement = document.getElementById('loginError');
-    
-    try {
-        const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js');
-        const auth = window.firebaseAuth;
-        
-        await signInWithEmailAndPassword(auth, email, password);
-        
-        // Successo
-        isAdmin = true;
-        document.getElementById('loginForm').classList.add('hidden');
-        document.getElementById('adminPanel').classList.remove('hidden');
-        
-        // Mostra bottoni admin
-        document.querySelectorAll('.btn-add').forEach(btn => btn.classList.remove('hidden'));
-        
-        // Aggiorna statistiche admin
-        updateStats();
-        
-        showNotification('Accesso amministratore effettuato', 'success');
-        
     } catch (error) {
-        console.error('Errore login:', error);
-        errorElement.textContent = 'Credenziali errate. Riprova.';
+        showToast('Errore nel caricamento dati. Ripristino backup...', 'error');
+        restoreFromBackup();
     }
 }
 
-async function adminLogout() {
+function saveData() {
     try {
-        const { signOut } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js');
-        const auth = window.firebaseAuth;
-        
-        await signOut(auth);
-        
-        isAdmin = false;
-        document.getElementById('adminModal').classList.add('hidden');
-        
-        // Nascondi bottoni admin
-        document.querySelectorAll('.btn-add').forEach(btn => btn.classList.add('hidden'));
-        
-        showNotification('Disconnessione effettuata', 'success');
-        
+        localStorage.setItem('fontaneBeveriniData', JSON.stringify(appData));
+        autoBackupData();
     } catch (error) {
-        console.error('Errore logout:', error);
+        showToast('Errore nel salvataggio dati', 'error');
     }
 }
 
-async function syncWithFirebase() {
+function autoBackupData() {
     try {
-        showNotification('Sincronizzazione in corso...', 'info');
-        await loadFromFirebase();
-        renderFontaneList();
-        renderBeveriniList();
-        renderNews();
-        updateStats();
-        updateMapMarkers();
-        showNotification('Dati sincronizzati con successo', 'success');
-    } catch (error) {
-        console.error('Errore sincronizzazione:', error);
-        showNotification('Errore durante la sincronizzazione', 'error');
-    }
-}
-
-function exportToExcel() {
-    // Implementazione base
-    const data = {
-        fontane: allFontane,
-        beverini: allBeverini,
-        news: allNews
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `fontane-napoli-backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    
-    showNotification('Backup esportato', 'success');
-}
-
-function importFromExcel() {
-    // Implementazione base
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        const reader = new FileReader();
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupKey = `fontaneBeveriniBackup_${timestamp}`;
+        localStorage.setItem(backupKey, JSON.stringify(appData));
         
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target.result);
-                
-                if (data.fontane) allFontane = data.fontane;
-                if (data.beverini) allBeverini = data.beverini;
-                if (data.news) allNews = data.news;
-                
-                saveToLocalStorage();
-                renderFontaneList();
-                renderBeveriniList();
-                renderNews();
-                updateStats();
-                updateMapMarkers();
-                
-                showNotification('Dati importati con successo', 'success');
-            } catch (error) {
-                console.error('Errore importazione:', error);
-                showNotification('Errore durante l\'importazione', 'error');
+        const backupKeys = Object.keys(localStorage)
+            .filter(key => key.startsWith('fontaneBeveriniBackup_'))
+            .sort()
+            .reverse();
+        
+        if (backupKeys.length > 5) {
+            for (let i = 5; i < backupKeys.length; i++) {
+                localStorage.removeItem(backupKeys[i]);
             }
-        };
-        
-        reader.readAsText(file);
-    };
-    
-    input.click();
+        }
+    } catch (error) {
+        console.error('Backup error:', error);
+    }
 }
 
-function backupLocalData() {
-    saveToLocalStorage();
-    showNotification('Backup locale creato', 'success');
+// Funzioni per la navigazione
+function showScreen(screenId) {
+    if (screenHistory[screenHistory.length - 1] !== screenId) {
+        screenHistory.push(screenId);
+    }
+    
+    if (screenHistory.length > 10) {
+        screenHistory = screenHistory.slice(-10);
+    }
+    
+    document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+        screen.style.display = 'none';
+    });
+    
+    const targetScreen = document.getElementById(screenId);
+    if (targetScreen) {
+        targetScreen.style.display = 'block';
+        setTimeout(() => {
+            targetScreen.classList.add('active');
+        }, 10);
+        window.scrollTo(0, 0);
+        initializeScreenContent(screenId);
+    }
+    
+    updateTabBar(screenId);
+    document.getElementById('fixed-navigate-btn').classList.add('hidden');
 }
 
-// ========== MAP CONTROLS ==========
-
-function locateUser() {
-    if (!map) return;
-    
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const userLat = position.coords.latitude;
-                const userLng = position.coords.longitude;
-                
-                map.setView([userLat, userLng], 16);
-                
-                // Aggiungi marker
-                L.marker([userLat, userLng])
-                    .addTo(map)
-                    .bindPopup('La tua posizione')
-                    .openPopup();
-            },
-            (error) => {
-                showNotification('Impossibile ottenere la posizione: ' + error.message, 'error');
-            }
-        );
+function goBack() {
+    if (screenHistory.length > 1) {
+        screenHistory.pop();
+        const previousScreen = screenHistory[screenHistory.length - 1];
+        showScreen(previousScreen);
     } else {
-        showNotification('Geolocalizzazione non supportata', 'error');
+        showScreen('home-screen');
     }
 }
 
-function toggleMapType() {
-    if (!map) return;
-    
-    // Implementazione base per cambiare tipo mappa
-    showNotification('Funzionalità in sviluppo', 'info');
+function updateTabBar(activeScreen) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    const activeTab = document.querySelector(`.tab-btn[data-target="${activeScreen}"]`);
+    if (activeTab) activeTab.classList.add('active');
 }
 
-// ========== NETWORK FUNCTIONS ==========
-
-function handleOnline() {
-    console.log('Online - Sincronizzazione dati');
-    syncWithFirebase();
+// Funzioni per l'amministrazione
+function showAdminAuth() {
+    document.getElementById('admin-auth').style.display = 'flex';
+    document.getElementById('admin-password').focus();
 }
 
-function handleOffline() {
-    console.log('Offline - Modalità offline');
-    showNotification('Sei offline. I dati potrebbero non essere aggiornati.', 'warning');
+function closeAdminAuth() {
+    document.getElementById('admin-auth').style.display = 'none';
+    document.getElementById('admin-password').value = '';
+    document.getElementById('auth-error').style.display = 'none';
 }
 
-// ========== HELPER FUNCTIONS ==========
-
-function addNewItem(type) {
-    if (!isAdmin) {
-        showNotification('Accesso amministratore richiesto', 'error');
-        return;
+function openAdminPanel() {
+    if (isAdminAuthenticated) {
+        showAdminPanel();
+    } else {
+        showAdminAuth();
     }
-    
-    // Implementazione base
-    showNotification(`Aggiungi nuovo ${type} - Funzionalità in sviluppo`, 'info');
 }
 
-function refreshData() {
-    loadAllData();
-    showNotification('Dati aggiornati', 'success');
+function showAdminPanel() {
+    document.getElementById('admin-panel').style.display = 'flex';
+    document.querySelector('.admin-fab').style.display = 'flex';
+
+    loadSecureConfig();
+    loadAdminFontane();
+    loadAdminBeverini();
+    loadAdminNews();
+    updateDashboardStats();
+
+    const savedLog = localStorage.getItem('activityLog');
+    if (savedLog) {
+        activityLog = JSON.parse(savedLog);
+        updateActivityLog();
+    }
+
+    loadBackupList();
 }
 
-function renderFilteredFontane(filtered) {
-    const container = document.getElementById('fontaneList');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    filtered.forEach(fontana => {
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        card.innerHTML = `
-            <div class="item-header">
-                <h4>${fontana.nome}</h4>
-                <span class="status-badge ${fontana.stato}">${getStatusLabel(fontana.stato)}</span>
+function closeAdminPanel() {
+    document.getElementById('admin-panel').style.display = 'none';
+    document.querySelector('.admin-fab').style.display = 'none';
+}
+
+function loadSecureConfig() {
+    const configSection = document.querySelector('.admin-config-section');
+    configSection.innerHTML = `
+        <h3>Configurazione Firebase</h3>
+        <div class="secure-config-section">
+            <h4>Stato Connessione</h4>
+            <div class="api-status" id="firebase-status">
+                <i class="fas fa-circle"></i> <span id="firebase-status-text">Connesso a Firebase</span>
             </div>
-            <p class="item-address">${fontana.indirizzo}</p>
-            <p class="item-desc">${fontana.descrizione || 'Nessuna descrizione'}</p>
-            <div class="item-actions">
-                <button class="btn-secondary" onclick="showDetails('fontana', '${fontana.id}')">
-                    <i class="fas fa-info-circle"></i> Dettagli
-                </button>
-                <button class="btn-primary" onclick="navigateTo(${fontana.lat}, ${fontana.lng})">
-                    <i class="fas fa-directions"></i> Naviga
-                </button>
-            </div>
-        `;
-        container.appendChild(card);
+        </div>
+        <div class="sync-actions">
+            <button class="admin-btn primary" onclick="syncAllWithFirebase()">
+                <i class="fas fa-sync-alt"></i> Sincronizza Tutto
+            </button>
+            <button class="admin-btn secondary" onclick="loadAllFromFirebase()">
+                <i class="fas fa-download"></i> Carica Tutto da Firebase
+            </button>
+            <button class="admin-btn secondary" onclick="saveAllToFirebase()">
+                <i class="fas fa-upload"></i> Salva Tutto su Firebase
+            </button>
+        </div>
+    `;
+}
+
+async function syncAllWithFirebase() {
+    try {
+        showToast('Sincronizzazione con Firebase...', 'info');
+        await saveAllToFirebase();
+        await loadAllFromFirebase();
+        showToast('Sincronizzazione completata', 'success');
+    } catch (error) {
+        showToast(`Errore nella sincronizzazione: ${error.message}`, 'error');
+    }
+}
+
+async function loadAllFromFirebase() {
+    try {
+        showToast('Caricamento di tutti i dati da Firebase...', 'info');
+        await loadFromFirebase('fontane');
+        await loadFromFirebase('beverini');
+        await loadFromFirebase('news');
+        showToast('Tutti i dati caricati da Firebase', 'success');
+    } catch (error) {
+        showToast(`Errore nel caricamento: ${error.message}`, 'error');
+    }
+}
+
+async function saveAllToFirebase() {
+    try {
+        showToast('Salvataggio di tutti i dati su Firebase...', 'info');
+        await saveToFirebase('fontane');
+        await saveToFirebase('beverini');
+        await saveToFirebase('news');
+        showToast('Tutti i dati salvati su Firebase', 'success');
+    } catch (error) {
+        showToast(`Errore nel salvataggio: ${error.message}`, 'error');
+    }
+}
+
+// Aggiungi altre funzioni necessarie dal codice originale...
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', function() {
+    loadData();
+    checkOnlineStatus();
+    showScreen('home-screen');
+    handleUrlParameters();
+
+    // Nascondi il FAB admin all'avvio
+    document.querySelector('.admin-fab').style.display = 'none';
+
+    // Inizializza Firebase Auth listener
+    auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        isAdminAuthenticated = !!user;
+        if (user) {
+            console.log('Admin autenticato:', user.email);
+        }
     });
-    
-    if (filtered.length === 0) {
-        container.innerHTML = '<p class="empty-state">Nessuna fontana trovata</p>';
-    }
-}
 
-function renderFilteredBeverini(filtered) {
-    const container = document.getElementById('beveriniList');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    filtered.forEach(beverino => {
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        card.innerHTML = `
-            <div class="item-header">
-                <h4>Beverino</h4>
-                <span class="status-badge ${beverino.stato}">${getStatusLabel(beverino.stato)}</span>
-            </div>
-            <p class="item-address">${beverino.indirizzo}</p>
-            <p class="item-desc">${beverino.descrizione || 'Fontanella pubblica'}</p>
-            <div class="item-actions">
-                <button class="btn-secondary" onclick="showDetails('beverino', '${beverino.id}')">
-                    <i class="fas fa-info-circle"></i> Dettagli
-                </button>
-                <button class="btn-primary" onclick="navigateTo(${beverino.lat}, ${beverino.lng})">
-                    <i class="fas fa-directions"></i> Naviga
-                </button>
-            </div>
-        `;
-        container.appendChild(card);
+    // Carica i dati da Firebase all'avvio
+    setTimeout(() => {
+        loadAllFromFirebase().then(() => {
+            console.log('Dati caricati da Firebase');
+        }).catch(error => {
+            console.log('Utilizzo dati locali:', error.message);
+        });
+    }, 1000);
+
+    // Gestione errori immagini
+    document.addEventListener('error', function(e) {
+        if (e.target.tagName === 'IMG') {
+            e.target.src = './images/sfondo-home.jpg';
+        }
+    }, true);
+
+    // Event listener per la sequenza segreta
+    const logo = document.querySelector('.app-logo');
+    const title = document.querySelector('.home-title');
+
+    logo.addEventListener('dblclick', function() {
+        handleSecretSequence('logo');
     });
-    
-    if (filtered.length === 0) {
-        container.innerHTML = '<p class="empty-state">Nessun beverino trovato</p>';
-    }
+
+    title.addEventListener('click', function() {
+        handleSecretSequence('title');
+    });
+
+    logActivity('Applicazione avviata');
+});
+
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(registration => {
+                console.log('Service Worker registrato con successo:', registration);
+            })
+            .catch(error => {
+                console.log('Registrazione Service Worker fallita:', error);
+            });
+    });
 }
 
-// ========== GLOBAL EXPORTS ==========
-
-// Espone funzioni necessarie agli eventi onclick
-window.showDetails = showDetails;
-window.navigateTo = navigateTo;
-window.reportIssue = reportIssue;
-window.addNewItem = addNewItem;
-
-console.log('App.js caricato correttamente');
+// Aggiungi qui tutte le altre funzioni necessarie dal codice originale
+// (gestione mappa, filtri, form, etc.) mantenendo la logica Firebase

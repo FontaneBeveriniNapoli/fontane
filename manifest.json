@@ -1,72 +1,54 @@
 {
-  "name": "Fontane & Beverini Napoli",
-  "short_name": "FontaneNapoli",
-  "description": "Mappa delle fontane e beverini di Napoli",
-  "start_url": "/fontane/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#007bff",
-  "lang": "it-IT",
-  "dir": "ltr",
-  
-  "icons": [
-    {
-      "src": "images/icona-avvio.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "images/icona-avvio-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "images/icona-avvio-splash.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  
-  "screenshots": [
-    {
-      "src": "images/screenshot-mobile.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "images/screenshot-tablet.png",
-      "sizes": "1920x1080",
-      "type": "image/png",
-      "form_factor": "wide"
-    }
-  ],
-  
-  "shortcuts": [
-    {
-      "name": "Fontane",
-      "short_name": "Fontane",
-      "description": "Visualizza tutte le fontane",
-      "url": "/fontane/#fontane"
-    },
-    {
-      "name": "Beverini",
-      "short_name": "Beverini",
-      "description": "Visualizza tutti i beverini",
-      "url": "/fontane/#beverini"
-    },
-    {
-      "name": "Mappa",
-      "short_name": "Mappa",
-      "description": "Apri la mappa interattiva",
-      "url": "/fontane/#mappa"
-    }
-  ],
-  
-  "categories": ["navigation", "maps", "utilities"],
-  "prefer_related_applications": false
+    "name": "Fontane & Beverini Napoli",
+    "short_name": "Fontane Napoli",
+    "description": "Gestione intelligente delle risorse idriche cittadine di Napoli",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f8fafc",
+    "theme_color": "#3b82f6",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "./images/icona-avvio-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "./images/icona-avvio-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "./images/icona-avvio-splash.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "splash"
+        }
+    ],
+    "categories": ["navigation", "utilities"],
+    "lang": "it-IT",
+    "dir": "ltr",
+    "prefer_related_applications": false,
+    "shortcuts": [
+        {
+            "name": "Fontane",
+            "short_name": "Fontane",
+            "description": "Visualizza le fontane",
+            "url": "/#fontane-screen"
+        },
+        {
+            "name": "Beverini",
+            "short_name": "Beverini",
+            "description": "Visualizza i beverini",
+            "url": "/#beverini-screen"
+        },
+        {
+            "name": "Mappa",
+            "short_name": "Mappa",
+            "description": "Visualizza la mappa",
+            "url": "/#mappa-screen"
+        }
+    ]
 }

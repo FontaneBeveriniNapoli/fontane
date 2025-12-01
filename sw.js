@@ -1,183 +1,126 @@
-// Service Worker per Fontane & Beverini Napoli PWA
-
-const CACHE_NAME = 'fontane-napoli-pwa-v1.2';
-const OFFLINE_URL = '/fontane/index.html';
-
-// Risorse da memorizzare nella cache
-const PRECACHE_RESOURCES = [
-    '/fontane/',
-    '/fontane/index.html',
-    '/fontane/style.css',
-    '/fontane/app.js',
-    '/fontane/manifest.json',
-    '/fontane/sw.js',
-    
-    // Immagini
-    '/fontane/images/icona-avvio.png',
-    '/fontane/images/icona-avvio-512.png',
-    '/fontane/images/icona-avvio-splash.png',
-    '/fontane/images/logo-comune.png',
-    '/fontane/images/sfondo-home.jpg',
-    
-    // CDN esterni
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
+const CACHE_NAME = 'fontane-beverini-v1.0';
+const urlsToCache = [
+    './',
+    './index.html',
+    './style.css',
+    './app.js',
+    './manifest.json',
+    './images/icona-avvio-192.png',
+    './images/icona-avvio-512.png',
+    './images/icona-avvio-splash.png',
+    './images/logo-app.png',
+    './images/logo-comune.png',
+    './images/sfondo-home.jpg',
+    './images/fontana-cariati.jpg',
+    'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-    'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
     'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
-    'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'
+    'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
 
-// Installazione Service Worker
+// Installazione del Service Worker
 self.addEventListener('install', event => {
-    console.log('[Service Worker] Installazione in corso...');
-    
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('[Service Worker] Cache aperta');
-                return cache.addAll(PRECACHE_RESOURCES);
+                console.log('Cache aperta');
+                return cache.addAll(urlsToCache);
             })
-            .then(() => {
-                console.log('[Service Worker] Tutte le risorse precaricate');
-                return self.skipWaiting();
-            })
-            .catch(error => {
-                console.error('[Service Worker] Errore installazione:', error);
-            })
+            .then(() => self.skipWaiting())
     );
 });
 
-// Attivazione Service Worker
+// Attivazione del Service Worker
 self.addEventListener('activate', event => {
-    console.log('[Service Worker] Attivazione in corso...');
-    
-    // Rimuovi vecchie cache
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
                     if (cacheName !== CACHE_NAME) {
-                        console.log('[Service Worker] Rimozione vecchia cache:', cacheName);
+                        console.log('Cancellazione vecchia cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
             );
-        })
-        .then(() => {
-            console.log('[Service Worker] Attivazione completata');
-            return self.clients.claim();
-        })
+        }).then(() => self.clients.claim())
     );
 });
 
-// Gestione richieste fetch
+// Intercettazione delle richieste
 self.addEventListener('fetch', event => {
-    // Skip richieste non GET
-    if (event.request.method !== 'GET') return;
-    
-    // Skip richieste Firebase e altre API
-    if (event.request.url.includes('firebase') ||
+    // Escludi le richieste a Firebase e Google Sheets
+    if (event.request.url.includes('firebase') || 
         event.request.url.includes('googleapis') ||
-        event.request.url.includes('gstatic.com') ||
-        event.request.url.match(/\/api\//)) {
+        event.request.url.includes('google.com') ||
+        event.request.url.includes('gstatic.com')) {
         return;
     }
-    
+
     event.respondWith(
         caches.match(event.request)
-            .then(cachedResponse => {
-                // Se risorsa in cache, ritorna
-                if (cachedResponse) {
-                    return cachedResponse;
+            .then(response => {
+                // Cache hit - ritorna la risposta dalla cache
+                if (response) {
+                    return response;
                 }
-                
-                // Altrimenti fai fetch
-                return fetch(event.request)
+
+                // Clone della richiesta perché è un stream e può essere consumato una sola volta
+                const fetchRequest = event.request.clone();
+
+                return fetch(fetchRequest)
                     .then(response => {
-                        // Controlla risposta valida
+                        // Controlla se abbiamo ricevuto una risposta valida
                         if (!response || response.status !== 200 || response.type !== 'basic') {
                             return response;
                         }
-                        
-                        // Clona risposta
+
+                        // Clone della risposta perché è un stream e può essere consumato una sola volta
                         const responseToCache = response.clone();
-                        
-                        // Aggiungi a cache
+
                         caches.open(CACHE_NAME)
                             .then(cache => {
                                 cache.put(event.request, responseToCache);
                             });
-                        
+
                         return response;
                     })
-                    .catch(error => {
-                        console.error('[Service Worker] Fetch fallito:', error);
-                        
-                        // Per pagine HTML, ritorna offline page
-                        if (event.request.headers.get('accept').includes('text/html')) {
-                            return caches.match(OFFLINE_URL);
+                    .catch(() => {
+                        // Fallback per le immagini
+                        if (event.request.destination === 'image') {
+                            return caches.match('./images/sfondo-home.jpg');
                         }
                         
-                        // Per altre risorse, ritorna messaggio di errore
-                        return new Response('Network error - Offline mode', {
-                            status: 408,
-                            headers: { 'Content-Type': 'text/plain' }
-                        });
+                        // Fallback per le pagine HTML
+                        if (event.request.headers.get('accept').includes('text/html')) {
+                            return caches.match('./index.html');
+                        }
                     });
             })
     );
 });
 
-// Gestione messaggi dal client
-self.addEventListener('message', event => {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
-    
-    if (event.data && event.data.type === 'CLEAR_CACHE') {
-        caches.delete(CACHE_NAME);
-    }
-});
-
-// Gestione sync
-self.addEventListener('sync', event => {
-    console.log('[Service Worker] Sync event:', event.tag);
-    
-    if (event.tag === 'sync-data') {
-        event.waitUntil(syncData());
-    }
-});
-
-async function syncData() {
-    console.log('[Service Worker] Sincronizzazione dati offline...');
-    // Implementa sincronizzazione dati offline
-}
-
-// Gestione push notifications
+// Gestione delle notifiche push (se necessario in futuro)
 self.addEventListener('push', event => {
-    console.log('[Service Worker] Push notification ricevuta');
-    
     const options = {
-        body: event.data ? event.data.text() : 'Nuovo aggiornamento disponibile',
-        icon: '/fontane/images/icona-avvio.png',
-        badge: '/fontane/images/icona-avvio.png',
-        vibrate: [200, 100, 200],
+        body: event.data.text(),
+        icon: './images/icona-avvio-192.png',
+        badge: './images/icona-avvio-192.png',
+        vibrate: [100, 50, 100],
         data: {
-            url: '/fontane/'
+            dateOfArrival: Date.now(),
+            primaryKey: 1
         }
     };
-    
+
     event.waitUntil(
-        self.registration.showNotification('Fontane Napoli', options)
+        self.registration.showNotification('Fontane & Beverini Napoli', options)
     );
 });
 
+// Gestione dei click sulle notifiche
 self.addEventListener('notificationclick', event => {
-    console.log('[Service Worker] Notifica cliccata');
-    
     event.notification.close();
-    
     event.waitUntil(
         clients.matchAll({ type: 'window' })
             .then(clientList => {
@@ -187,10 +130,8 @@ self.addEventListener('notificationclick', event => {
                     }
                 }
                 if (clients.openWindow) {
-                    return clients.openWindow(event.notification.data.url || '/fontane/');
+                    return clients.openWindow('/');
                 }
             })
     );
 });
-
-console.log('[Service Worker] Caricato correttamente');
