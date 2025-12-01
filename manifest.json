@@ -1,10 +1,10 @@
 {
-  "name": "Fontane & Beverini Napoli",
+  "name": "Fontane & Beverini - Napoli",
   "short_name": "Fontane Napoli",
-  "description": "Gestione intelligente delle fontane e beverini di Napoli",
-  "start_url": "./index.html",
+  "description": "Gestione intelligente delle risorse idriche cittadine. Trova, esplora e monitora tutte le fontane e i beverini della tua città.",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#3b82f6",
+  "background_color": "#f8fafc",
   "theme_color": "#3b82f6",
   "orientation": "portrait",
   "icons": [
@@ -27,31 +27,34 @@
       "purpose": "splash"
     }
   ],
+  "categories": ["navigation", "travel", "utilities"],
   "screenshots": [
     {
-      "src": "./images/sfondo-home.jpg",
+      "src": "./images/screenshot-1.png",
       "sizes": "1280x720",
-      "type": "image/jpeg",
-      "form_factor": "wide"
+      "type": "image/png"
     }
   ],
-  "categories": ["navigation", "maps", "travel"],
+  "related_applications": [],
+  "prefer_related_applications": false,
   "shortcuts": [
-    {
-      "name": "Mappa",
-      "short_name": "Mappa",
-      "description": "Apri la mappa delle fontane",
-      "url": "./index.html?screen=mappa-screen",
-      "icons": [{ "src": "./images/icona-avvio-192.png", "sizes": "192x192" }]
-    },
     {
       "name": "Fontane",
       "short_name": "Fontane",
-      "description": "Visualizza l'elenco delle fontane",
-      "url": "./index.html?screen=fontane-screen",
-      "icons": [{ "src": "./images/icona-avvio-192.png", "sizes": "192x192" }]
+      "description": "Visualizza tutte le fontane",
+      "url": "/?screen=fontane"
+    },
+    {
+      "name": "Beverini",
+      "short_name": "Beverini",
+      "description": "Visualizza tutti i beverini",
+      "url": "/?screen=beverini"
+    },
+    {
+      "name": "Mappa",
+      "short_name": "Mappa",
+      "description": "Apri la mappa interattiva",
+      "url": "/?screen=mappa"
     }
-  ],
-  "prefer_related_applications": false,
-  "related_applications": []
+  ]
 }

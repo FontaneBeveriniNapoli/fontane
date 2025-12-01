@@ -223,6 +223,10 @@ body {
     color: var(--primary-orange);
     border: 2px solid rgba(245, 158, 11, 0.5);
 }
+.admin-btn .btn-icon {
+    color: var(--primary-purple);
+    border: 2px solid rgba(139, 92, 246, 0.5);
+}
 .home-btn:hover .btn-icon {
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 6px 18px rgba(0,0,0,0.25);
@@ -246,6 +250,9 @@ body {
 }
 .home-btn.news-btn {
     border-left: 4px solid var(--primary-orange);
+}
+.home-btn.admin-btn {
+    border-left: 4px solid var(--primary-purple);
 }
 @media (max-width: 380px) {
     .home-buttons {

@@ -1,185 +1,124 @@
-const CACHE_NAME = 'fontane-beverini-v1.0';
-const STATIC_CACHE = 'static-cache-v1';
-const DYNAMIC_CACHE = 'dynamic-cache-v1';
-
-const STATIC_ASSETS = [
-    './',
-    './index.html',
-    './style.css',
-    './app.js',
-    './manifest.json',
-    './images/icona-avvio-192.png',
-    './images/icona-avvio-512.png',
-    './images/icona-avvio-splash.png',
-    './images/sfondo-home.jpg',
-    './images/logo-app.png',
-    './images/logo-comune.png',
-    'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-    'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
-    'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',
-    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-    'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-    'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-    'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
-    'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png'
+const CACHE_NAME = 'fontane-beverini-v1.0.0';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/app.js',
+  '/manifest.json',
+  './images/logo-app.png',
+  './images/logo-comune.png',
+  './images/sfondo-home.jpg',
+  './images/icona-avvio-192.png',
+  './images/icona-avvio-512.png',
+  './images/icona-avvio-splash.png',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
+  'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
 
-// Install Event
+// Install Service Worker
 self.addEventListener('install', event => {
-    console.log('Service Worker installing...');
-    event.waitUntil(
-        caches.open(STATIC_CACHE)
-            .then(cache => {
-                console.log('Caching static assets');
-                return cache.addAll(STATIC_ASSETS);
-            })
-            .then(() => self.skipWaiting())
-    );
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Cache aperto');
+        return cache.addAll(urlsToCache);
+      })
+  );
 });
 
-// Activate Event
+// Activate Service Worker
 self.addEventListener('activate', event => {
-    console.log('Service Worker activating...');
-    event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cacheName => {
-                    if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-                        console.log('Deleting old cache:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        }).then(() => self.clients.claim())
-    );
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Cancellazione vecchia cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
 });
 
-// Fetch Event
+// Fetch Strategy: Cache First, then Network
 self.addEventListener('fetch', event => {
-    // Skip Firebase requests and OSM tiles
-    if (event.request.url.includes('firebase') || 
-        event.request.url.includes('openstreetmap') ||
-        event.request.url.includes('nominatim')) {
-        return;
-    }
-    
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') return;
+
+  // Skip Chrome extensions
+  if (event.request.url.startsWith('chrome-extension://')) return;
+
+  // Skip Firebase requests (always go to network)
+  if (event.request.url.includes('firebase') || 
+      event.request.url.includes('googleapis')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // For map tiles, use cache-first strategy
+  if (event.request.url.includes('tile.openstreetmap.org')) {
     event.respondWith(
-        caches.match(event.request)
-            .then(cachedResponse => {
-                // Return cached version if available
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
-                
-                // Otherwise fetch from network
-                return fetch(event.request)
-                    .then(response => {
-                        // Check if we received a valid response
-                        if (!response || response.status !== 200 || response.type !== 'basic') {
-                            return response;
-                        }
-                        
-                        // Clone the response
-                        const responseToCache = response.clone();
-                        
-                        // Cache dynamic content
-                        caches.open(DYNAMIC_CACHE)
-                            .then(cache => {
-                                cache.put(event.request, responseToCache);
-                            });
-                        
-                        return response;
-                    })
-                    .catch(() => {
-                        // If network fails, try to serve offline page
-                        if (event.request.url.includes('.html')) {
-                            return caches.match('./index.html');
-                        }
-                    });
-            })
+      caches.match(event.request).then(response => {
+        return response || fetch(event.request).then(networkResponse => {
+          // Don't cache map tiles
+          return networkResponse;
+        });
+      })
     );
+    return;
+  }
+
+  // For other requests, use cache-first strategy
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response;
+        }
+        
+        return fetch(event.request).then(networkResponse => {
+          // Don't cache if not a success response
+          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+            return networkResponse;
+          }
+
+          // Clone the response
+          const responseToCache = networkResponse.clone();
+
+          caches.open(CACHE_NAME)
+            .then(cache => {
+              cache.put(event.request, responseToCache);
+            });
+
+          return networkResponse;
+        });
+      })
+      .catch(() => {
+        // If both cache and network fail, show offline page
+        if (event.request.url.includes('.html')) {
+          return caches.match('/index.html');
+        }
+        return new Response('Connessione assente', {
+          status: 408,
+          headers: { 'Content-Type': 'text/plain' }
+        });
+      })
+  );
 });
 
-// Sync Event for background sync
+// Background Sync for offline data
 self.addEventListener('sync', event => {
-    if (event.tag === 'sync-data') {
-        console.log('Background sync triggered');
-        event.waitUntil(syncData());
-    }
+  if (event.tag === 'sync-data') {
+    event.waitUntil(syncOfflineData());
+  }
 });
 
-// Periodic Sync for background updates
-self.addEventListener('periodicsync', event => {
-    if (event.tag === 'update-data') {
-        console.log('Periodic sync triggered');
-        event.waitUntil(updateData());
-    }
-});
-
-// Background sync function
-async function syncData() {
-    console.log('Syncing data in background...');
-    // Implement background sync logic here
+async function syncOfflineData() {
+  console.log('Sincronizzazione dati in background...');
+  // Implementa la logica per sincronizzare i dati offline qui
 }
-
-// Periodic update function
-async function updateData() {
-    console.log('Updating data periodically...');
-    // Implement periodic update logic here
-}
-
-// Push Notification Event
-self.addEventListener('push', event => {
-    const options = {
-        body: event.data ? event.data.text() : 'Nuova notifica dalle Fontane di Napoli',
-        icon: './images/icona-avvio-192.png',
-        badge: './images/icona-avvio-192.png',
-        vibrate: [100, 50, 100],
-        data: {
-            dateOfArrival: Date.now(),
-            primaryKey: 'fontane-notification'
-        },
-        actions: [
-            {
-                action: 'explore',
-                title: 'Esplora',
-                icon: './images/icona-avvio-192.png'
-            },
-            {
-                action: 'close',
-                title: 'Chiudi',
-                icon: './images/icona-avvio-192.png'
-            }
-        ]
-    };
-    
-    event.waitUntil(
-        self.registration.showNotification('Fontane & Beverini Napoli', options)
-    );
-});
-
-// Notification Click Event
-self.addEventListener('notificationclick', event => {
-    console.log('Notification click received.');
-    
-    event.notification.close();
-    
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then(clientList => {
-                // Check if there's already a window/tab open with the target URL
-                for (const client of clientList) {
-                    if (client.url.includes('/index.html') && 'focus' in client) {
-                        return client.focus();
-                    }
-                }
-                // If not, open a new window/tab
-                if (clients.openWindow) {
-                    return clients.openWindow('./index.html');
-                }
-            })
-    );
-});
