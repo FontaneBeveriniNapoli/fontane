@@ -58,12 +58,14 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK - COMPLETO CON ANALYTICS -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyBvDfxm-LSAcu0NwtJ8DYxxrjY-83LlLPU",
@@ -75,12 +77,17 @@
             measurementId: "G-DPEC2SNGDM"
         };
         
+        // Inizializza Firebase
         const app = initializeApp(firebaseConfig);
+        
+        // Inizializza i servizi Firebase
         window.db = getFirestore(app);
         window.auth = getAuth(app);
+        window.firebaseAnalytics = getAnalytics(app);
         window.firebaseSignIn = signInWithEmailAndPassword;
+        window.app = app;
         
-        console.log('Firebase inizializzato');
+        console.log('Firebase inizializzato con Analytics');
     </script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -462,82 +469,209 @@
                 </div>
             </div>
 
-            <!-- ✅ NUOVA SEZIONE ANALYTICS -->
+            <!-- ✅ SEZIONE ANALYTICS COMPLETA -->
             <div class="admin-tab-content" id="analytics-admin">
-                <div class="analytics-stats-grid" id="analytics-stats">
+                <div class="analytics-header">
+                    <h3>Dashboard Analytics</h3>
+                    <p>Monitora le attività degli utenti e le prestazioni dell'app</p>
+                </div>
+                
+                <div class="analytics-stats-grid">
                     <div class="analytics-stat-card">
-                        <div class="analytics-stat-title">Sessioni Oggi</div>
-                        <div class="analytics-stat-value" id="sessions-today">0</div>
-                        <div class="analytics-stat-label">Utenti attivi</div>
+                        <div class="analytics-stat-icon" style="background: var(--primary-blue);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="analytics-stat-value" id="analytics-session-count">0</div>
+                        <div class="analytics-stat-label">Sessioni Oggi</div>
                     </div>
                     <div class="analytics-stat-card">
-                        <div class="analytics-stat-title">Eventi Totali</div>
-                        <div class="analytics-stat-value" id="total-events">0</div>
-                        <div class="analytics-stat-label">Interazioni</div>
+                        <div class="analytics-stat-icon" style="background: var(--primary-green);">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="analytics-stat-value" id="analytics-events-count">0</div>
+                        <div class="analytics-stat-label">Eventi Oggi</div>
                     </div>
                     <div class="analytics-stat-card">
-                        <div class="analytics-stat-title">Errori</div>
-                        <div class="analytics-stat-value" id="total-errors">0</div>
-                        <div class="analytics-stat-label">Ultimi 7 giorni</div>
+                        <div class="analytics-stat-icon" style="background: var(--primary-purple);">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <div class="analytics-stat-value" id="analytics-pageviews-count">0</div>
+                        <div class="analytics-stat-label">Page Views</div>
                     </div>
                     <div class="analytics-stat-card">
-                        <div class="analytics-stat-title">Performance</div>
-                        <div class="analytics-stat-value" id="avg-performance">0ms</div>
-                        <div class="analytics-stat-label">Tempo medio caricamento</div>
+                        <div class="analytics-stat-icon" style="background: var(--primary-red);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="analytics-stat-value" id="analytics-errors-count">0</div>
+                        <div class="analytics-stat-label">Errori Oggi</div>
                     </div>
                 </div>
-
-                <div class="analytics-chart-container">
-                    <div class="analytics-chart-title">Attività Utenti (Ultimi 7 giorni)</div>
-                    <div id="activity-chart" style="height: 200px; background: #f8fafc; border-radius: 10px; padding: 15px;">
-                        <div style="text-align: center; padding: 60px 0; color: #6b7280;">
-                            <i class="fas fa-chart-bar" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                            <p>Grafico attività utenti</p>
-                            <p style="font-size: 0.8rem;">I dati si aggiornano automaticamente</p>
+                
+                <div class="analytics-charts-section">
+                    <div class="analytics-chart-container">
+                        <h4>Attività Utenti (Ultimi 7 giorni)</h4>
+                        <canvas id="activity-chart"></canvas>
+                        <div class="performance-metrics">
+                            <div class="performance-metric">
+                                <span class="metric-label">Tempo medio caricamento pagine:</span>
+                                <span class="metric-value" id="metric-page-load">0ms</span>
+                            </div>
+                            <div class="performance-metric">
+                                <span class="metric-label">Tempo medio caricamento immagini:</span>
+                                <span class="metric-value" id="metric-image-load">0ms</span>
+                            </div>
+                            <div class="performance-metric">
+                                <span class="metric-label">Tempo medio caricamento dati:</span>
+                                <span class="metric-value" id="metric-data-load">0ms</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-chart-container">
+                        <h4>Stato Sistema</h4>
+                        <div class="analytics-status">
+                            <div class="status-indicator" id="analytics-status-indicator">
+                                <i class="fas fa-circle"></i>
+                                <span id="analytics-status-text">Analytics Attivo</span>
+                            </div>
+                            <div class="session-info">
+                                <div>Session ID: <code id="current-session-id">...</code></div>
+                                <div>User ID: <code id="current-user-id">...</code></div>
+                                <div>Ultimo sync: <span id="last-sync-time">Mai</span></div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 10px;">
+                            <h5 style="margin-bottom: 10px;">Storage Utilizzato</h5>
+                            <div class="performance-metric">
+                                <span class="metric-label">Eventi archiviati:</span>
+                                <span class="metric-value" id="storage-events">0</span>
+                            </div>
+                            <div class="performance-metric">
+                                <span class="metric-label">Errori archiviati:</span>
+                                <span class="metric-value" id="storage-errors">0</span>
+                            </div>
+                            <div class="performance-metric">
+                                <span class="metric-label">Storage totale:</span>
+                                <span class="metric-value" id="storage-used">0 KB</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="analytics-errors-list">
-                    <div class="analytics-chart-title">Errori Recenti</div>
-                    <div id="recent-errors-list">
-                        <div style="text-align: center; padding: 20px; color: #6b7280;">
-                            <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.5rem; margin-bottom: 10px;"></i>
-                            <p>Nessun errore recente</p>
+                
+                <div class="analytics-tables-section">
+                    <div class="analytics-table-container">
+                        <h4>Errori Recenti</h4>
+                        <div class="analytics-table">
+                            <table style="width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Ora</th>
+                                        <th>Contesto</th>
+                                        <th>Messaggio</th>
+                                        <th>Severità</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analytics-errors-table">
+                                    <!-- Popolato dinamicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-table-container">
+                        <h4>Eventi Più Frequenti</h4>
+                        <div class="analytics-table">
+                            <table style="width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Categoria</th>
+                                        <th>Azione</th>
+                                        <th>Conteggio</th>
+                                        <th>Ultimo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analytics-events-table">
+                                    <!-- Popolato dinamicamente -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-
-                <div class="analytics-actions">
-                    <button class="analytics-btn primary" onclick="refreshAnalytics()">
-                        <i class="fas fa-sync-alt"></i> Aggiorna Dati
-                    </button>
-                    <button class="analytics-btn secondary" onclick="exportAnalyticsData()">
-                        <i class="fas fa-download"></i> Esporta Dati
-                    </button>
-                    <button class="analytics-btn secondary" onclick="clearAnalyticsData()">
-                        <i class="fas fa-trash"></i> Pulisci Dati
-                    </button>
-                    <button class="analytics-btn secondary" onclick="toggleAnalyticsTracking()">
-                        <i class="fas fa-toggle-on"></i> Tracciamento: ON
-                    </button>
-                </div>
-
-                <div class="sync-section" style="margin-top: 20px;">
-                    <h4>Stato Sincronizzazione</h4>
-                    <div class="sync-status" id="sync-status">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <i class="fas fa-check-circle" style="color: #10b981;"></i>
-                            <span>Tutto sincronizzato</span>
-                        </div>
-                    </div>
-                    <div class="sync-actions" style="margin-top: 10px;">
-                        <button class="admin-btn secondary" onclick="forceSync()">
-                            <i class="fas fa-sync"></i> Forza Sincronizzazione
+                
+                <div class="analytics-actions-section">
+                    <h4>Azioni Analytics</h4>
+                    <div class="analytics-actions">
+                        <button class="admin-btn primary" onclick="refreshAnalyticsDashboard()">
+                            <i class="fas fa-sync-alt"></i> Aggiorna Dashboard
                         </button>
-                        <button class="admin-btn secondary" onclick="viewPendingSync()">
-                            <i class="fas fa-clock"></i> Visualizza in Coda
+                        <button class="admin-btn secondary" onclick="exportAnalyticsData()">
+                            <i class="fas fa-download"></i> Esporta Dati
                         </button>
+                        <button class="admin-btn secondary" onclick="toggleAnalyticsTracking()">
+                            <i class="fas fa-toggle-on"></i> Attiva/Disattiva
+                        </button>
+                        <button class="admin-btn danger" onclick="resetAnalyticsData()">
+                            <i class="fas fa-trash"></i> Resetta Dati
+                        </button>
+                    </div>
+                    
+                    <div class="sync-section">
+                        <h4>Stato Sincronizzazione</h4>
+                        <div id="sync-status">
+                            <div class="analytics-status">
+                                <div class="status-indicator" id="sync-status-indicator">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span id="sync-status-text">Sincronizzato</span>
+                                </div>
+                                <div class="session-info">
+                                    <div>Eventi in coda: <span id="pending-events-count">0</span></div>
+                                    <div>Ultimo invio: <span id="last-send-time">Mai</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sync-actions" style="margin-top: 10px;">
+                            <button class="admin-btn primary" onclick="forceSyncAnalytics()">
+                                <i class="fas fa-sync"></i> Forza Sincronizzazione
+                            </button>
+                            <button class="admin-btn secondary" onclick="clearAnalyticsErrors()">
+                                <i class="fas fa-broom"></i> Pulisci Errori
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="analytics-debug-section">
+                    <h4>Debug & Test</h4>
+                    <div class="debug-controls">
+                        <button class="admin-btn secondary" onclick="testAnalyticsEvent()">
+                            <i class="fas fa-vial"></i> Test Evento
+                        </button>
+                        <button class="admin-btn secondary" onclick="testAnalyticsError()">
+                            <i class="fas fa-bug"></i> Test Errore
+                        </button>
+                        <button class="admin-btn secondary" onclick="testPerformanceMetric()">
+                            <i class="fas fa-tachometer-alt"></i> Test Performance
+                        </button>
+                    </div>
+                    
+                    <div class="debug-info">
+                        <div class="info-item">
+                            <span>Analytics Inizializzato:</span>
+                            <span id="debug-initialized">No</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Firebase Analytics:</span>
+                            <span id="debug-firebase">No</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Modalità PWA:</span>
+                            <span id="debug-pwa">No</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Connessione:</span>
+                            <span id="debug-online">No</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -840,8 +974,8 @@
     <!-- ✅ FILE PRINCIPALI -->
     <script src="app.js"></script>
     
-    <!-- ✅ ANALYTICS (NUOVO FILE) -->
-    <script src="./analytics.js"></script>
+    <!-- ✅ ANALYTICS COMPLETO -->
+    <script src="analytics.js"></script>
     
     <script>
         // Service Worker Registration
@@ -865,18 +999,78 @@
         });
         
         // ✅ FUNZIONI PER IL PANNELLO ANALYTICS
-        function refreshAnalytics() {
+        function refreshAnalyticsDashboard() {
             if (window.Analytics) {
                 const summary = window.Analytics.getAnalyticsSummary();
                 
                 // Aggiorna statistiche
-                document.getElementById('sessions-today').textContent = '1';
-                document.getElementById('total-events').textContent = summary.session.events || '0';
-                document.getElementById('total-errors').textContent = summary.metrics.errors.today || '0';
-                document.getElementById('avg-performance').textContent = 
-                    Math.round(summary.metrics.performance.average || 0) + 'ms';
+                document.getElementById('analytics-session-count').textContent = summary.sessions.today || '0';
+                document.getElementById('analytics-events-count').textContent = summary.events.today || '0';
+                document.getElementById('analytics-pageviews-count').textContent = summary.pageViews.today || '0';
+                document.getElementById('analytics-errors-count').textContent = summary.errors.today || '0';
                 
-                showToast('Dati analytics aggiornati', 'success');
+                // Aggiorna performance
+                document.getElementById('metric-page-load').textContent = 
+                    Math.round(summary.metrics.performance.average || 0) + 'ms';
+                document.getElementById('metric-image-load').textContent = 
+                    Math.round(summary.metrics.performance.imageLoad || 0) + 'ms';
+                document.getElementById('metric-data-load').textContent = '0ms';
+                
+                // Aggiorna storage
+                document.getElementById('storage-events').textContent = summary.events.total || '0';
+                document.getElementById('storage-errors').textContent = summary.errors.total || '0';
+                document.getElementById('storage-used').textContent = 
+                    Math.round(summary.metrics.storage.eventsSize / 1024) + ' KB';
+                
+                // Aggiorna session info
+                document.getElementById('current-session-id').textContent = 
+                    summary.sessions.current.id.substring(0, 15) + '...';
+                document.getElementById('current-user-id').textContent = 
+                    summary.user.id.substring(0, 15) + '...';
+                
+                // Aggiorna sync info
+                const lastSync = localStorage.getItem('analytics_last_sync');
+                if (lastSync) {
+                    const lastSyncDate = new Date(lastSync);
+                    const now = new Date();
+                    const diffMinutes = Math.floor((now - lastSyncDate) / (1000 * 60));
+                    
+                    if (diffMinutes < 1) {
+                        document.getElementById('last-sync-time').textContent = 'Poco fa';
+                    } else if (diffMinutes < 60) {
+                        document.getElementById('last-sync-time').textContent = `${diffMinutes} minuti fa`;
+                    } else {
+                        document.getElementById('last-sync-time').textContent = 
+                            lastSyncDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                    }
+                }
+                
+                // Aggiorna status
+                const statusIndicator = document.getElementById('analytics-status-indicator');
+                const statusText = document.getElementById('analytics-status-text');
+                
+                if (window.Analytics.config.trackingEnabled) {
+                    statusIndicator.classList.remove('inactive');
+                    statusIndicator.classList.add('active');
+                    statusText.textContent = 'Analytics Attivo';
+                    statusText.className = 'status-active';
+                } else {
+                    statusIndicator.classList.remove('active');
+                    statusIndicator.classList.add('inactive');
+                    statusText.textContent = 'Analytics Disattivo';
+                    statusText.className = 'status-inactive';
+                }
+                
+                // Aggiorna debug info
+                document.getElementById('debug-initialized').textContent = window.Analytics.isInitialized ? 'Si' : 'No';
+                document.getElementById('debug-firebase').textContent = window.firebaseAnalytics ? 'Si' : 'No';
+                document.getElementById('debug-pwa').textContent = window.matchMedia('(display-mode: standalone)').matches ? 'Si' : 'No';
+                document.getElementById('debug-online').textContent = navigator.onLine ? 'Si' : 'No';
+                
+                showToast('Dashboard analytics aggiornata', 'success');
+                
+                // Traccia l'evento
+                window.Analytics.trackEvent('analytics', 'dashboard_refreshed');
             } else {
                 showToast('Analytics non inizializzato', 'error');
             }
@@ -884,37 +1078,43 @@
         
         function exportAnalyticsData() {
             if (window.Analytics) {
-                window.Analytics.exportAnalyticsData();
-                showToast('Dati analytics esportati', 'success');
+                const filename = window.Analytics.exportAnalyticsData();
+                showToast(`Dati analytics esportati in ${filename}`, 'success');
+                window.Analytics.trackEvent('analytics', 'data_exported');
+            } else {
+                showToast('Analytics non inizializzato', 'error');
             }
         }
         
-        function clearAnalyticsData() {
-            if (confirm('Sei sicuro di voler cancellare tutti i dati analytics? Questa operazione è irreversibile.')) {
+        function resetAnalyticsData() {
+            if (confirm('Sei sicuro di voler resettare tutti i dati analytics? Questa azione non può essere annullata.')) {
                 if (window.Analytics) {
                     window.Analytics.resetUserData();
-                    refreshAnalytics();
-                    showToast('Dati analytics cancellati', 'success');
+                    refreshAnalyticsDashboard();
+                    showToast('Dati analytics resettati', 'success');
+                    window.Analytics.trackEvent('analytics', 'data_reset');
                 }
             }
         }
         
         function toggleAnalyticsTracking() {
-            const btn = document.querySelector('[onclick="toggleAnalyticsTracking()"]');
-            const isEnabled = window.Analytics.config.trackingEnabled;
-            
-            window.Analytics.setTrackingEnabled(!isEnabled);
-            
-            if (!isEnabled) {
-                btn.innerHTML = '<i class="fas fa-toggle-on"></i> Tracciamento: ON';
-                btn.classList.add('primary');
-                btn.classList.remove('secondary');
-                showToast('Tracciamento analytics attivato', 'success');
-            } else {
-                btn.innerHTML = '<i class="fas fa-toggle-off"></i> Tracciamento: OFF';
-                btn.classList.add('secondary');
-                btn.classList.remove('primary');
-                showToast('Tracciamento analytics disattivato', 'info');
+            if (window.Analytics) {
+                const newState = !window.Analytics.config.trackingEnabled;
+                window.Analytics.setTrackingEnabled(newState);
+                
+                const btn = document.querySelector('[onclick="toggleAnalyticsTracking()"]');
+                if (newState) {
+                    btn.innerHTML = '<i class="fas fa-toggle-on"></i> Attiva/Disattiva';
+                    btn.classList.add('primary');
+                    btn.classList.remove('secondary');
+                } else {
+                    btn.innerHTML = '<i class="fas fa-toggle-off"></i> Attiva/Disattiva';
+                    btn.classList.add('secondary');
+                    btn.classList.remove('primary');
+                }
+                
+                showToast(`Analytics ${newState ? 'attivato' : 'disattivato'}`, 'info');
+                refreshAnalyticsDashboard();
             }
         }
         
@@ -922,92 +1122,156 @@
             if (window.Analytics) {
                 window.Analytics.setTrackingEnabled(enabled);
                 showToast(`Tracciamento analytics ${enabled ? 'attivato' : 'disattivato'}`, 'success');
+                refreshAnalyticsDashboard();
             }
         }
         
-        function forceSync() {
-            if (window.triggerAutoSync) {
-                window.triggerAutoSync();
-                showToast('Sincronizzazione forzata avviata', 'info');
+        function forceSyncAnalytics() {
+            if (window.Analytics && window.Analytics.flushQueue) {
+                window.Analytics.flushQueue(true);
+                localStorage.setItem('analytics_last_sync', new Date().toISOString());
+                refreshAnalyticsDashboard();
+                showToast('Sync analytics forzato', 'info');
+                window.Analytics.trackEvent('analytics', 'force_sync');
             }
         }
         
-        function viewPendingSync() {
-            const queue = JSON.parse(localStorage.getItem('localSyncQueue') || '[]');
-            const pending = JSON.parse(localStorage.getItem('pendingSyncItems') || '[]');
-            
-            const total = queue.length + pending.length;
-            
-            if (total > 0) {
-                showInfoModal('Elementi in Coda Sync', 
-                    `Ci sono ${total} elementi in attesa di sincronizzazione:
-                    \n• ${queue.length} nella coda attiva
-                    \n• ${pending.length} in attesa di elaborazione
-                    \n\nLa sincronizzazione avverrà automaticamente quando tornerai online.`);
-            } else {
-                showInfoModal('Coda Sync', 'Non ci sono elementi in attesa di sincronizzazione.');
-            }
-        }
-        
-        // ✅ INIZIALIZZAZIONE ANALYTICS INTEGRATA
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                // Inizializza analytics
+        function clearAnalyticsErrors() {
+            if (confirm('Cancellare tutti gli errori registrati?')) {
+                localStorage.removeItem('analytics_errors');
+                refreshAnalyticsDashboard();
+                showToast('Errori cancellati', 'success');
                 if (window.Analytics) {
-                    await window.Analytics.initialize();
-                    
-                    // Traccia avvio app
-                    window.Analytics.trackEvent('app', 'started', null, null, {
-                        online: navigator.onLine,
-                        pwa: window.matchMedia('(display-mode: standalone)').matches,
-                        platform: navigator.platform
-                    });
-                    
-                    // Traccia prima pagina
-                    window.Analytics.trackPageView('app_loaded', {
-                        load_time: window.performance.timing.loadEventEnd - window.performance.timing.navigationStart
-                    });
+                    window.Analytics.trackEvent('analytics', 'errors_cleared');
                 }
-                
-                // Traccia navigazione schermate
-                const originalShowScreen = window.showScreen;
-                if (originalShowScreen) {
-                    window.showScreen = function(screenId) {
-                        const currentScreen = window.screenHistory ? window.screenHistory[window.screenHistory.length - 1] : 'home-screen';
-                        
-                        // Traccia cambio schermata
-                        if (window.Analytics) {
-                            window.Analytics.trackEvent('navigation', 'screen_change', `${currentScreen}_to_${screenId}`, null, {
-                                from_screen: currentScreen,
-                                to_screen: screenId,
-                                method: 'function'
-                            });
-                            window.Analytics.trackPageView(`screen_${screenId}`, {
-                                screen_name: screenId,
-                                screen_type: screenId.includes('detail') ? 'detail' : 
-                                          screenId.includes('list') ? 'list' : 'home'
-                            });
-                        }
-                        
-                        return originalShowScreen.call(this, screenId);
-                    };
-                }
-                
-                // Aggiorna admin tabs per includere analytics
-                document.querySelectorAll('.admin-tab-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const tabId = this.getAttribute('data-tab');
-                        if (tabId === 'analytics-admin') {
-                            setTimeout(refreshAnalytics, 100);
-                        }
-                    });
-                });
-                
-                console.log('[Analytics] Tracciamento inizializzato con successo');
-                
-            } catch (error) {
-                console.error('[Analytics] Errore inizializzazione:', error);
             }
+        }
+        
+        function testAnalyticsEvent() {
+            if (window.Analytics) {
+                window.Analytics.trackEvent('test', 'manual_event', 'Test manuale', 1, {
+                    test_mode: true,
+                    timestamp: new Date().toISOString()
+                });
+                showToast('Evento test registrato', 'info');
+                refreshAnalyticsDashboard();
+            }
+        }
+        
+        function testAnalyticsError() {
+            if (window.Analytics) {
+                const testError = new Error('Errore di test manuale');
+                testError.name = 'TestError';
+                testError.code = 'TEST_001';
+                
+                window.Analytics.trackError(testError, 'test_manual', 'low', {
+                    test_mode: true
+                });
+                showToast('Errore test registrato', 'info');
+                refreshAnalyticsDashboard();
+            }
+        }
+        
+        function testPerformanceMetric() {
+            if (window.Analytics) {
+                const loadTime = Math.random() * 1000 + 500;
+                window.Analytics.trackPerformance('test_manual_load', loadTime);
+                showToast(`Metrica test: ${Math.round(loadTime)}ms`, 'info');
+                refreshAnalyticsDashboard();
+            }
+        }
+        
+        // Aggiorna automaticamente la dashboard quando si apre il tab
+        document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+                if (tabId === 'analytics-admin') {
+                    setTimeout(() => {
+                        refreshAnalyticsDashboard();
+                        // Crea grafico se necessario
+                        setTimeout(createActivityChart, 500);
+                    }, 100);
+                }
+            });
+        });
+        
+        function createActivityChart() {
+            const canvas = document.getElementById('activity-chart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            
+            // Se il grafico esiste già, distruggilo
+            if (window.activityChart) {
+                window.activityChart.destroy();
+            }
+            
+            // Dati di esempio per il grafico
+            const labels = [];
+            const data = [];
+            
+            // Genera dati per ultimi 7 giorni
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString('it-IT', { weekday: 'short' }));
+                
+                // Valore casuale per demo
+                data.push(Math.floor(Math.random() * 50) + 20);
+            }
+            
+            // Crea grafico
+            window.activityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Eventi',
+                        data: data,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                stepSize: 10
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Inizializzazione quando la pagina è pronta
+        document.addEventListener('DOMContentLoaded', function() {
+            // Carica analytics dashboard dopo un po'
+            setTimeout(() => {
+                if (window.Analytics) {
+                    refreshAnalyticsDashboard();
+                }
+            }, 2000);
         });
     </script>
 </body>
