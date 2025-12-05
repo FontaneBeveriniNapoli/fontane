@@ -147,6 +147,7 @@
                 <button class="admin-tab-btn" data-tab="fontane-admin">Fontane</button>
                 <button class="admin-tab-btn" data-tab="beverini-admin">Beverini</button>
                 <button class="admin-tab-btn" data-tab="news-admin">News</button>
+                <button class="admin-tab-btn" data-tab="analytics-admin">Analytics</button>
                 <button class="admin-tab-btn" data-tab="config-admin">Configurazione</button>
             </div>
 
@@ -461,6 +462,86 @@
                 </div>
             </div>
 
+            <!-- ✅ NUOVA SEZIONE ANALYTICS -->
+            <div class="admin-tab-content" id="analytics-admin">
+                <div class="analytics-stats-grid" id="analytics-stats">
+                    <div class="analytics-stat-card">
+                        <div class="analytics-stat-title">Sessioni Oggi</div>
+                        <div class="analytics-stat-value" id="sessions-today">0</div>
+                        <div class="analytics-stat-label">Utenti attivi</div>
+                    </div>
+                    <div class="analytics-stat-card">
+                        <div class="analytics-stat-title">Eventi Totali</div>
+                        <div class="analytics-stat-value" id="total-events">0</div>
+                        <div class="analytics-stat-label">Interazioni</div>
+                    </div>
+                    <div class="analytics-stat-card">
+                        <div class="analytics-stat-title">Errori</div>
+                        <div class="analytics-stat-value" id="total-errors">0</div>
+                        <div class="analytics-stat-label">Ultimi 7 giorni</div>
+                    </div>
+                    <div class="analytics-stat-card">
+                        <div class="analytics-stat-title">Performance</div>
+                        <div class="analytics-stat-value" id="avg-performance">0ms</div>
+                        <div class="analytics-stat-label">Tempo medio caricamento</div>
+                    </div>
+                </div>
+
+                <div class="analytics-chart-container">
+                    <div class="analytics-chart-title">Attività Utenti (Ultimi 7 giorni)</div>
+                    <div id="activity-chart" style="height: 200px; background: #f8fafc; border-radius: 10px; padding: 15px;">
+                        <div style="text-align: center; padding: 60px 0; color: #6b7280;">
+                            <i class="fas fa-chart-bar" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                            <p>Grafico attività utenti</p>
+                            <p style="font-size: 0.8rem;">I dati si aggiornano automaticamente</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analytics-errors-list">
+                    <div class="analytics-chart-title">Errori Recenti</div>
+                    <div id="recent-errors-list">
+                        <div style="text-align: center; padding: 20px; color: #6b7280;">
+                            <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.5rem; margin-bottom: 10px;"></i>
+                            <p>Nessun errore recente</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analytics-actions">
+                    <button class="analytics-btn primary" onclick="refreshAnalytics()">
+                        <i class="fas fa-sync-alt"></i> Aggiorna Dati
+                    </button>
+                    <button class="analytics-btn secondary" onclick="exportAnalyticsData()">
+                        <i class="fas fa-download"></i> Esporta Dati
+                    </button>
+                    <button class="analytics-btn secondary" onclick="clearAnalyticsData()">
+                        <i class="fas fa-trash"></i> Pulisci Dati
+                    </button>
+                    <button class="analytics-btn secondary" onclick="toggleAnalyticsTracking()">
+                        <i class="fas fa-toggle-on"></i> Tracciamento: ON
+                    </button>
+                </div>
+
+                <div class="sync-section" style="margin-top: 20px;">
+                    <h4>Stato Sincronizzazione</h4>
+                    <div class="sync-status" id="sync-status">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                            <span>Tutto sincronizzato</span>
+                        </div>
+                    </div>
+                    <div class="sync-actions" style="margin-top: 10px;">
+                        <button class="admin-btn secondary" onclick="forceSync()">
+                            <i class="fas fa-sync"></i> Forza Sincronizzazione
+                        </button>
+                        <button class="admin-btn secondary" onclick="viewPendingSync()">
+                            <i class="fas fa-clock"></i> Visualizza in Coda
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="admin-tab-content" id="config-admin">
                 <div class="backup-section">
                     <h4>Sicurezza Amministratore</h4>
@@ -493,6 +574,39 @@
                         <button class="admin-btn secondary" onclick="document.getElementById('import-all-file').click()">
                             <i class="fas fa-file-import"></i> Importa Tutto
                         </button>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h4>Configurazione Analytics</h4>
+                    <div class="config-item">
+                        <label for="analytics-enabled">Tracciamento Attivo:</label>
+                        <input type="checkbox" id="analytics-enabled" checked onchange="toggleAnalytics(this.checked)">
+                    </div>
+                    <div class="config-item">
+                        <label for="error-logging">Log Errori:</label>
+                        <input type="checkbox" id="error-logging" checked>
+                    </div>
+                    <div class="config-item">
+                        <label for="performance-tracking">Tracciamento Performance:</label>
+                        <input type="checkbox" id="performance-tracking" checked>
+                    </div>
+                    <div class="config-status" id="config-status"></div>
+                </div>
+
+                <div class="config-section">
+                    <h4>Configurazione Offline</h4>
+                    <div class="config-item">
+                        <label for="offline-mode">Modalità Offline:</label>
+                        <input type="checkbox" id="offline-mode" checked>
+                    </div>
+                    <div class="config-item">
+                        <label for="auto-sync">Sincronizzazione Automatica:</label>
+                        <input type="checkbox" id="auto-sync" checked>
+                    </div>
+                    <div class="config-item">
+                        <label for="sync-interval">Intervallo Sync (min):</label>
+                        <input type="number" id="sync-interval" value="5" min="1" max="60">
                     </div>
                 </div>
             </div>
@@ -723,7 +837,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     
-    <!-- ✅ FILE PRINCIPALI ORIGINALI -->
+    <!-- ✅ FILE PRINCIPALI -->
     <script src="app.js"></script>
     
     <!-- ✅ ANALYTICS (NUOVO FILE) -->
@@ -749,6 +863,91 @@
             e.preventDefault();
             window.deferredPrompt = e;
         });
+        
+        // ✅ FUNZIONI PER IL PANNELLO ANALYTICS
+        function refreshAnalytics() {
+            if (window.Analytics) {
+                const summary = window.Analytics.getAnalyticsSummary();
+                
+                // Aggiorna statistiche
+                document.getElementById('sessions-today').textContent = '1';
+                document.getElementById('total-events').textContent = summary.session.events || '0';
+                document.getElementById('total-errors').textContent = summary.metrics.errors.today || '0';
+                document.getElementById('avg-performance').textContent = 
+                    Math.round(summary.metrics.performance.average || 0) + 'ms';
+                
+                showToast('Dati analytics aggiornati', 'success');
+            } else {
+                showToast('Analytics non inizializzato', 'error');
+            }
+        }
+        
+        function exportAnalyticsData() {
+            if (window.Analytics) {
+                window.Analytics.exportAnalyticsData();
+                showToast('Dati analytics esportati', 'success');
+            }
+        }
+        
+        function clearAnalyticsData() {
+            if (confirm('Sei sicuro di voler cancellare tutti i dati analytics? Questa operazione è irreversibile.')) {
+                if (window.Analytics) {
+                    window.Analytics.resetUserData();
+                    refreshAnalytics();
+                    showToast('Dati analytics cancellati', 'success');
+                }
+            }
+        }
+        
+        function toggleAnalyticsTracking() {
+            const btn = document.querySelector('[onclick="toggleAnalyticsTracking()"]');
+            const isEnabled = window.Analytics.config.trackingEnabled;
+            
+            window.Analytics.setTrackingEnabled(!isEnabled);
+            
+            if (!isEnabled) {
+                btn.innerHTML = '<i class="fas fa-toggle-on"></i> Tracciamento: ON';
+                btn.classList.add('primary');
+                btn.classList.remove('secondary');
+                showToast('Tracciamento analytics attivato', 'success');
+            } else {
+                btn.innerHTML = '<i class="fas fa-toggle-off"></i> Tracciamento: OFF';
+                btn.classList.add('secondary');
+                btn.classList.remove('primary');
+                showToast('Tracciamento analytics disattivato', 'info');
+            }
+        }
+        
+        function toggleAnalytics(enabled) {
+            if (window.Analytics) {
+                window.Analytics.setTrackingEnabled(enabled);
+                showToast(`Tracciamento analytics ${enabled ? 'attivato' : 'disattivato'}`, 'success');
+            }
+        }
+        
+        function forceSync() {
+            if (window.triggerAutoSync) {
+                window.triggerAutoSync();
+                showToast('Sincronizzazione forzata avviata', 'info');
+            }
+        }
+        
+        function viewPendingSync() {
+            const queue = JSON.parse(localStorage.getItem('localSyncQueue') || '[]');
+            const pending = JSON.parse(localStorage.getItem('pendingSyncItems') || '[]');
+            
+            const total = queue.length + pending.length;
+            
+            if (total > 0) {
+                showInfoModal('Elementi in Coda Sync', 
+                    `Ci sono ${total} elementi in attesa di sincronizzazione:
+                    \n• ${queue.length} nella coda attiva
+                    \n• ${pending.length} in attesa di elaborazione
+                    \n\nLa sincronizzazione avverrà automaticamente quando tornerai online.`);
+            } else {
+                showInfoModal('Coda Sync', 'Non ci sono elementi in attesa di sincronizzazione.');
+            }
+        }
         
         // ✅ INIZIALIZZAZIONE ANALYTICS INTEGRATA
         document.addEventListener('DOMContentLoaded', async () => {
@@ -794,31 +993,12 @@
                     };
                 }
                 
-                // Traccia click sui pulsanti
-                document.querySelectorAll('.home-btn, .tab-btn, .back-btn, .detail-action-btn').forEach(btn => {
+                // Aggiorna admin tabs per includere analytics
+                document.querySelectorAll('.admin-tab-btn').forEach(btn => {
                     btn.addEventListener('click', function() {
-                        const screen = this.closest('.screen')?.id || 'unknown';
-                        const buttonId = this.className || this.id || 'unknown_button';
-                        
-                        if (window.Analytics) {
-                            window.Analytics.trackEvent('ui', 'button_click', buttonId, null, {
-                                screen: screen,
-                                button_id: buttonId
-                            });
-                        }
-                    });
-                });
-                
-                // Traccia form submissions
-                document.querySelectorAll('form').forEach(form => {
-                    form.addEventListener('submit', function() {
-                        const fieldCount = this.querySelectorAll('input, select, textarea').length;
-                        
-                        if (window.Analytics) {
-                            window.Analytics.trackEvent('form', 'submission', this.id, fieldCount, {
-                                success: true,
-                                form_id: this.id
-                            });
+                        const tabId = this.getAttribute('data-tab');
+                        if (tabId === 'analytics-admin') {
+                            setTimeout(refreshAnalytics, 100);
                         }
                     });
                 });
