@@ -1,39 +1,168 @@
+[file name]: manifest.json
+[file content begin]
 {
   "name": "Fontane & Beverini - Napoli",
   "short_name": "Fontane Napoli",
-  "description": "Gestione intelligente delle risorse idriche cittadine",
+  "description": "Gestione intelligente delle risorse idriche cittadine. Trova, esplora e monitora tutte le fontane e i beverini della tua città.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#3b82f6",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#f8fafc",
   "theme_color": "#3b82f6",
   "orientation": "portrait",
   "icons": [
     {
       "src": "./images/icona-avvio-72.png",
       "sizes": "72x72",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "./images/icona-avvio-96.png",
       "sizes": "96x96",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./images/icona-avvio-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "./images/icona-avvio-144.png",
       "sizes": "144x144",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./images/icona-avvio-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "./images/icona-avvio-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./images/icona-avvio-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "./images/icona-avvio-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
-  "categories": ["navigation", "travel", "utilities"]
+  "categories": ["navigation", "travel", "utilities"],
+  "screenshots": [
+    {
+      "src": "./images/screenshot-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Schermata principale dell'app"
+    },
+    {
+      "src": "./images/screenshot-2.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Mappa interattiva"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Fontane",
+      "short_name": "Fontane",
+      "description": "Visualizza tutte le fontane",
+      "url": "./index.html?screen=fontane",
+      "icons": [
+        {
+          "src": "./images/shortcut-fontane.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Beverini",
+      "short_name": "Beverini",
+      "description": "Visualizza tutti i beverini",
+      "url": "./index.html?screen=beverini",
+      "icons": [
+        {
+          "src": "./images/shortcut-beverini.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Mappa",
+      "short_name": "Mappa",
+      "description": "Apri la mappa interattiva",
+      "url": "./index.html?screen=mappa",
+      "icons": [
+        {
+          "src": "./images/shortcut-mappa.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Pannello Admin",
+      "short_name": "Admin",
+      "description": "Gestisci i contenuti",
+      "url": "./index.html?admin=true",
+      "icons": [
+        {
+          "src": "./images/shortcut-admin.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "protocol_handlers": [
+    {
+      "protocol": "web+fontane",
+      "url": "./index.html?screen=%s"
+    }
+  ],
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "params": {
+      "title": "name",
+      "text": "description",
+      "url": "link"
+    }
+  },
+  "capture_links": "new-client",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 360
+  },
+  "file_handlers": [
+    {
+      "action": "./index.html",
+      "accept": {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+        "application/vnd.ms-excel": [".xls"],
+        "text/csv": [".csv"]
+      }
+    }
+  ]
 }
+[file content end]

@@ -60,6 +60,53 @@ function forceServiceWorkerUpdate() {
                     showToast('Aggiornamento Service Worker forzato', 'info');
                 }
             });
+    }
+}
+
+// Pulisci cache Service Worker (per sviluppo)
+function clearServiceWorkerCache() {
+    if ('serviceWorker' in navigator) {
+        caches.keys().then(function(cacheNames) {
+            cacheNames.forEach(function(cacheName) {
+                caches.delete(cacheName);
+                console.log('Cache eliminata:', cacheName);
+            });
+            showToast('Cache Service Worker pulita', 'info');
+        });
+        
+        // Deregistra Service Worker
+        navigator.serviceWorker.getRegistrations()
+            .then(function(registrations) {
+                registrations.forEach(function(registration) {
+                    registration.unregister();
+                    console.log('Service Worker deregistrato');
+                });
+            });
+    }
+}
+
+// Verifica supporto API
+function checkServiceWorkerSupport() {
+    const supports = {
+        serviceWorker: 'serviceWorker' in navigator,
+        sync: 'sync' in (navigator.serviceWorker || {}),
+        periodicSync: 'periodicSync' in (navigator.serviceWorker || {}),
+        push: 'PushManager' in window,
+        notification: 'Notification' in window,
+        cache: 'caches' in window
+    };
+    
+    console.log('Supporto API:', supports);
+    return supports;
+}
+
+// Firebase Collections
+const COLLECTIONS = {
+    FONTANE: 'fontane',
+    BEVERINI: 'beverini',
+    NEWS: 'news'
+};
+
 // ============================================
 // GESTIONE ERRORI COMPLETA
 // ============================================
@@ -3366,39 +3413,3 @@ function showAdminPanel() {
         updateActivityLog();
     }
 }
-// ============================================
-// ESPORTAZIONE FUNZIONI GLOBALI (FIX PULSANTI)
-// ============================================
-
-// Assicura che le funzioni siano disponibili globalmente
-if (typeof window !== 'undefined') {
-    window.showScreen = showScreen;
-    window.goBack = goBack;
-    window.loadFontane = loadFontane;
-    window.loadBeverini = loadBeverini;
-    window.loadNews = loadNews;
-    window.initMappa = initMappa;
-    window.setFilter = setFilter;
-    window.debouncedFilter = debouncedFilter;
-    window.navigateTo = navigateTo;
-    window.shareItem = shareItem;
-    window.showDetail = showDetail;
-    window.openAdminPanel = openAdminPanel;
-    window.checkAdminAuth = checkAdminAuth;
-    window.closeAdminAuth = closeAdminAuth;
-}
-
-// Inizializzazione app
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('App inizializzata, funzioni disponibili:');
-    console.log('- showScreen:', typeof showScreen);
-    console.log('- goBack:', typeof goBack);
-    
-    // Test manuale dei pulsanti home
-    setTimeout(() => {
-        document.querySelectorAll('.home-btn').forEach((btn, i) => {
-            const originalOnClick = btn.getAttribute('onclick');
-            console.log(`Pulsante ${i}:`, originalOnClick);
-        });
-    }, 1000);
-});

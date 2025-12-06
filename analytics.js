@@ -1,3 +1,5 @@
+[file name]: analytics.js
+[file content begin]
 // Analytics Manager
 class AnalyticsManager {
     constructor() {
@@ -24,6 +26,7 @@ class AnalyticsManager {
             preferences: {}
         };
         
+        // Performance metrics
         this.metrics = {
             appStart: Date.now(),
             pageLoadTimes: [],
@@ -31,6 +34,7 @@ class AnalyticsManager {
             dataFetchTimes: []
         };
         
+        // Initialize Service Worker for analytics
         this.initializeServiceWorkerSupport();
     }
     
@@ -40,6 +44,7 @@ class AnalyticsManager {
                 const registration = await navigator.serviceWorker.ready;
                 console.log('[Analytics] Service Worker pronto');
                 
+                // Send analytics config to Service Worker
                 if (registration.active) {
                     registration.active.postMessage({
                         type: 'ANALYTICS_CONFIG',
@@ -89,6 +94,7 @@ class AnalyticsManager {
                 window.firebaseAnalytics = getAnalytics(window.app);
                 console.log('[Analytics] Firebase Analytics inizializzato');
                 
+                // Traccia prima pagina
                 this.sendToFirebaseAnalytics({
                     type: 'APP_START',
                     timestamp: Date.now(),
@@ -124,12 +130,15 @@ class AnalyticsManager {
         this.queue.push(event);
         this.session.events++;
         
+        // Invia a Firebase Analytics
         this.sendToFirebaseAnalytics(event);
         
+        // Gestione coda locale
         if (this.queue.length >= this.config.batchSize) {
             this.flushQueue();
         }
         
+        // Log attività locale
         this.logActivity(`Evento: ${category}.${action}`, event);
         
         return event;
@@ -150,6 +159,7 @@ class AnalyticsManager {
         
         this.queue.push(pageView);
         
+        // Invia a Firebase Analytics
         this.sendToFirebaseAnalytics(pageView);
         
         this.session.lastActivity = Date.now();
@@ -177,6 +187,7 @@ class AnalyticsManager {
         
         this.queue.push(errorEvent);
         
+        // Invia a Firebase Analytics
         this.sendToFirebaseAnalytics(errorEvent);
         
         this.logActivity(`Errore: ${context} - ${error.message}`, errorEvent);
@@ -197,6 +208,7 @@ class AnalyticsManager {
         
         this.queue.push(perfEvent);
         
+        // Salva in metrics
         if (name.includes('page_load')) {
             this.metrics.pageLoadTimes.push(duration);
         } else if (name.includes('image')) {
@@ -315,6 +327,7 @@ class AnalyticsManager {
         this.queue.push(sessionEvent);
         this.sendToFirebaseAnalytics(sessionEvent);
         
+        // Genera nuova sessione
         this.session = {
             id: this.generateSessionId(),
             startTime: Date.now(),
@@ -337,8 +350,10 @@ class AnalyticsManager {
         this.queue = [];
         
         try {
+            // Salva localmente
             this.saveEventsLocally(eventsToSend);
             
+            // Invia a Firestore (se online)
             if (navigator.onLine && window.db) {
                 await this.sendToFirestore(eventsToSend);
                 this.cleanupOldLocalEvents();
@@ -463,6 +478,7 @@ class AnalyticsManager {
     }
     
     setupEventListeners() {
+        // Monitora inattività sessione
         setInterval(() => {
             const inactiveTime = Date.now() - this.session.lastActivity;
             if (inactiveTime > this.config.sessionTimeout) {
@@ -470,12 +486,14 @@ class AnalyticsManager {
             }
         }, 60000);
         
+        // Session end su visibility change
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
                 setTimeout(() => this.trackSessionEnd(), 1000);
             }
         });
         
+        // Rileva connessione
         window.addEventListener('online', () => {
             this.trackEvent('network', 'online', null, null, { timestamp: Date.now() });
             this.sendPendingEvents();
@@ -485,6 +503,7 @@ class AnalyticsManager {
             this.trackEvent('network', 'offline', null, null, { timestamp: Date.now() });
         });
         
+        // Performance observer
         if ('PerformanceObserver' in window) {
             try {
                 const observer = new PerformanceObserver((list) => {
@@ -533,18 +552,23 @@ class AnalyticsManager {
         const allEvents = JSON.parse(localStorage.getItem('analytics_events') || '[]');
         const allErrors = JSON.parse(localStorage.getItem('analytics_errors') || '[]');
         
+        // Eventi di oggi
         const todayEvents = allEvents.filter(event => 
             new Date(event.timestamp).toDateString() === today
         );
         
+        // Sessioni oggi
         const todaySessions = todayEvents.filter(event => event.type === 'SESSION_START');
         
+        // Errori oggi
         const todayErrors = allErrors.filter(error => 
             new Date(error.timestamp).toDateString() === today
         );
         
+        // Page views oggi
         const pageViews = todayEvents.filter(event => event.type === 'PAGE_VIEW').length;
         
+        // Performance media
         const avgPageLoad = this.metrics.pageLoadTimes.length > 0 ? 
             this.metrics.pageLoadTimes.reduce((a, b) => a + b, 0) / this.metrics.pageLoadTimes.length : 0;
         
@@ -622,14 +646,17 @@ class AnalyticsManager {
     resetUserData() {
         const userId = this.user.id;
         
+        // Reset locale ma mantieni user ID
         localStorage.removeItem('analytics_events');
         localStorage.removeItem('analytics_errors');
         localStorage.removeItem('analytics_activities');
         localStorage.removeItem('analytics_pending');
         localStorage.removeItem('analytics_last_sync');
         
+        // Mantieni user ID
         localStorage.setItem('analytics_user_id', userId);
         
+        // Reset session
         this.session = {
             id: this.generateSessionId(),
             startTime: Date.now(),
@@ -674,8 +701,10 @@ class AnalyticsManager {
             }
         }
         
+        // Carica errori vecchi
         const oldErrors = localStorage.getItem('analytics_errors');
         if (!oldErrors) {
+            // Migra errori vecchi se esistono
             const analyticsErrors = localStorage.getItem('analytics_errors') || '[]';
             localStorage.setItem('analytics_errors', analyticsErrors);
         }
@@ -700,10 +729,13 @@ class AnalyticsManager {
     }
 }
 
+// Inizializza Analytics Manager
 window.Analytics = new AnalyticsManager();
 
+// Inizializzazione automatica
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        // Wait for Service Worker to be ready
         if ('serviceWorker' in navigator) {
             try {
                 await navigator.serviceWorker.ready;
@@ -713,8 +745,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
+        // Initialize analytics
         await window.Analytics.initialize();
         
+        // Traccia avvio app
         window.Analytics.trackEvent('app', 'loaded', null, null, {
             online: navigator.onLine,
             pwa: window.matchMedia('(display-mode: standalone)').matches,
@@ -724,6 +758,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             service_worker: 'serviceWorker' in navigator
         });
         
+        // Traccia prima pagina
         window.Analytics.trackPageView('app_start', {
             load_time: window.performance?.timing ? 
                 window.performance.timing.loadEventEnd - window.performance.timing.navigationStart : 0
@@ -735,11 +770,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// Hook per tracciare cambio schermate
 const originalShowScreen = window.showScreen;
 if (originalShowScreen) {
     window.showScreen = function(screenId) {
         const currentScreen = window.screenHistory ? window.screenHistory[window.screenHistory.length - 1] : 'home-screen';
         
+        // Traccia cambio schermata
         if (window.Analytics) {
             window.Analytics.trackEvent('navigation', 'screen_change', `${currentScreen}_to_${screenId}`, null, {
                 from_screen: currentScreen,
@@ -759,8 +796,10 @@ if (originalShowScreen) {
     };
 }
 
+// Hook per tracciare click importanti
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
+        // Traccia click su pulsanti home
         document.querySelectorAll('.home-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const btnType = this.className.includes('fontane') ? 'fontane' :
@@ -776,6 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         
+        // Traccia click su elementi lista
         document.addEventListener('click', function(e) {
             const gridItem = e.target.closest('.grid-item');
             const compactItem = e.target.closest('.compact-item');
@@ -807,6 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2000);
 });
 
+// Esporta funzioni globali per il pannello admin
 window.analyticsFunctions = {
     refreshAnalytics: () => {
         if (window.Analytics) {
@@ -839,3 +880,4 @@ window.analyticsFunctions = {
         return null;
     }
 };
+[file content end]

@@ -1292,57 +1292,6 @@
                 }
             }, 2000);
         });
-
-        // ============================================
-        // ✅ DEBUG: FIX PER PULSANTI HOME (AGGIUNGI QUI)
-        // ============================================
-        window.addEventListener('load', function() {
-            console.log('=== VERIFICA FUNZIONI GLOBALI ===');
-            console.log('showScreen disponibile?', typeof showScreen);
-            console.log('goBack disponibile?', typeof goBack);
-            console.log('loadFontane disponibile?', typeof loadFontane);
-            
-            // Test manuale click
-            document.querySelectorAll('.home-btn').forEach(btn => {
-                // Rimuovi onclick originale per test
-                const originalOnClick = btn.getAttribute('onclick');
-                console.log('Pulsante trovato:', btn.className, 'onclick:', originalOnClick);
-                
-                btn.addEventListener('click', function(e) {
-                    console.log('CLICK RILEVATO su:', this.className);
-                    
-                    // Determina quale schermata aprire in base alla classe
-                    let targetScreen = '';
-                    if (this.classList.contains('fontane-btn')) {
-                        targetScreen = 'fontane-screen';
-                    } else if (this.classList.contains('beverini-btn')) {
-                        targetScreen = 'beverini-screen';
-                    } else if (this.classList.contains('mappa-btn')) {
-                        targetScreen = 'mappa-screen';
-                    } else if (this.classList.contains('news-btn')) {
-                        targetScreen = 'news-screen';
-                    }
-                    
-                    console.log('Target screen:', targetScreen);
-                    
-                    if (targetScreen && typeof showScreen === 'function') {
-                        showScreen(targetScreen);
-                    } else if (targetScreen) {
-                        // Fallback diretto
-                        document.querySelectorAll('.screen').forEach(screen => {
-                            screen.classList.remove('active');
-                            screen.style.display = 'none';
-                        });
-                        const screenElement = document.getElementById(targetScreen);
-                        if (screenElement) {
-                            screenElement.style.display = 'flex';
-                            screenElement.classList.add('active');
-                            console.log('Schermata aperta:', targetScreen);
-                        }
-                    }
-                });
-            });
-        });
     </script>
 </body>
 </html>
