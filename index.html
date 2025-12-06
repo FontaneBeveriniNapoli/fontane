@@ -3,41 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- ✅ META TAG SEO DA INDEX2.HTML -->
+    <meta name="description" content="Gestione intelligente delle risorse idriche cittadine. Trova, esplora e monitora tutte le fontane e i beverini di Napoli.">
+    <meta name="keywords" content="fontane, beverini, napoli, acqua, mappa, geolocalizzazione">
+    <meta name="author" content="Fontane Beverini Napoli">
+    
     <title>Fontane & Beverini - Napoli</title>
     
-    <!-- ✅ PWA MANIFEST -->
-    <link rel="manifest" href="manifest.json">
+    <!-- ✅ PWA MANIFEST (AGGIORNATO CON CROSSORIGIN) -->
+    <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
     
     <!-- ✅ FAVICON per browser desktop -->
     <link rel="icon" type="image/x-icon" href="./images/favicon.ico">
     <link rel="icon" type="image/png" sizes="16x16" href="./images/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="./images/favicon-32x32.png">
     
-    <!-- ✅ APPLE ICONS (iOS) -->
+    <!-- ✅ APPLE ICONS (iOS) AGGIORNATE -->
     <link rel="apple-touch-icon" href="./images/apple-touch-icon.png">
     <link rel="apple-touch-icon" sizes="144x144" href="./images/icona-avvio-144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./images/icona-avvio-152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="./images/icona-avvio-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./images/icona-avvio-192.png">
     <link rel="apple-touch-icon" sizes="192x192" href="./images/icona-avvio-192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="./images/icona-avvio-512.png">
     
-    <!-- ✅ SPLASH SCREEN iOS -->
-    <link rel="apple-touch-startup-image" 
-          href="./images/icona-avvio-splash.png"
-          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)">
-    <link rel="apple-touch-startup-image" 
-          href="./images/icona-avvio-splash.png"
-          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)">
-    <link rel="apple-touch-startup-image" 
-          href="./images/icona-avvio-splash.png"
-          media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)">
+    <!-- ✅ SPLASH SCREEN iOS (SEMPLIFICATO) -->
     <link rel="apple-touch-startup-image" 
           href="./images/icona-avvio-splash.png"
           media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)">
-    <link rel="apple-touch-startup-image" 
-          href="./images/icona-avvio-splash.png"
-          media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)">
-    <link rel="apple-touch-startup-image" 
-          href="./images/icona-avvio-splash.png"
-          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
     
     <!-- ✅ THEME COLOR -->
     <meta name="theme-color" content="#3b82f6">
@@ -978,15 +972,15 @@
     <script src="analytics.js"></script>
     
     <script>
-        // Service Worker Registration
+        // ✅ REGISTRAZIONE SERVICE WORKER MIGLIORATA (da index2.html)
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        console.log('Service Worker registrato con successo:', registration.scope);
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful:', registration.scope);
                     })
-                    .catch(error => {
-                        console.log('Registrazione Service Worker fallita:', error);
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
                     });
             });
         }

@@ -1,3 +1,82 @@
+[file name]: app.js
+[file content begin]
+// ============================================
+// SERVICE WORKER REGISTRATION & OFFLINE SUPPORT
+// ============================================
+
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js', {
+            scope: './',
+            updateViaCache: 'none'
+        })
+        .then(registration => {
+            console.log('[App] Service Worker registrato:', registration);
+            
+            // Listen for updates
+            registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('[App] Nuovo Service Worker trovato:', newWorker.state);
+                
+                newWorker.addEventListener('statechange', () => {
+                    console.log('[App] Service Worker stato:', newWorker.state);
+                    
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        showToast('Aggiornamento disponibile! Ricarica la pagina.', 'info', 10000);
+                    }
+                });
+            });
+            
+            // Check for updates periodically
+            setInterval(() => {
+                registration.update();
+            }, 60 * 60 * 1000); // Ogni ora
+            
+            // Set up background sync
+            if ('sync' in registration) {
+                registration.sync.register('sync-data')
+                    .then(() => console.log('[App] Background sync registrato'))
+                    .catch(err => console.warn('[App] Errore background sync:', err));
+            }
+            
+            return registration;
+        })
+        .catch(error => {
+            console.error('[App] Errore registrazione Service Worker:', error);
+            showToast('Modalità offline limitata', 'warning', 5000);
+        });
+    } else {
+        console.warn('[App] Service Worker non supportato');
+    }
+}
+
+// Listen for Service Worker messages
+function setupServiceWorkerMessages() {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.addEventListener('message', event => {
+            const { data } = event;
+            console.log('[App] Messaggio dal Service Worker:', data);
+            
+            switch(data.type) {
+                case 'TRIGGER_SYNC':
+                    console.log('[App] Sync triggerato dal Service Worker');
+                    triggerAutoSync();
+                    break;
+                    
+                case 'SYNC_COMPLETE':
+                    showToast(`Sincronizzati ${data.count} elementi`, 'success');
+                    break;
+            }
+        });
+        
+        // Send ready message to Service Worker
+        navigator.serviceWorker.controller.postMessage({
+            type: 'APP_READY',
+            timestamp: new Date().toISOString()
+        });
+    }
+}
+
 // Firebase Collections
 const COLLECTIONS = {
     FONTANE: 'fontane',
@@ -307,6 +386,10 @@ function initializeOfflineSync() {
     
     setInterval(checkSyncStatus, 60000);
     loadSyncState();
+    
+    // Register Service Worker
+    registerServiceWorker();
+    setTimeout(setupServiceWorkerMessages, 2000);
 }
 
 // Abilita modalità offline
@@ -2212,7 +2295,7 @@ async function saveBeverino(e) {
                     appData.beverini[index] = { id: savedId, ...beverinoData };
                 }
             } else {
-                appData.beverini.push({ id: savedId, ...beverinoData });
+                appData.beverini.push({ id: savedId, ...beverinoData };
             }
             
             showToast('Beverino salvato localmente. Sarà sincronizzato online dopo.', 'info');
@@ -2737,75 +2820,6 @@ function handleUrlParameters() {
     }
 }
 
-// Initialize App
-document.addEventListener('DOMContentLoaded', function() {
-    loadLocalData();
-    checkOnlineStatus();
-    showScreen('home-screen');
-    handleUrlParameters();
-    
-    setTimeout(async () => {
-        try {
-            await loadFirebaseData('fontane');
-            await loadFirebaseData('beverini');
-            await loadFirebaseData('news');
-            
-            if (document.getElementById('fontane-list').innerHTML.includes('Caricamento')) {
-                loadFontane();
-            }
-            if (document.getElementById('beverini-list').innerHTML.includes('Caricamento')) {
-                loadBeverini();
-            }
-            if (document.getElementById('news-list').innerHTML.includes('Caricamento')) {
-                loadNews();
-            }
-            
-        } catch (error) {
-            showToast('Utilizzo dati locali', 'info');
-        }
-    }, 1000);
-    
-    document.getElementById('admin-password').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            checkAdminAuth();
-        }
-    });
-    
-    document.getElementById('admin-auth').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeAdminAuth();
-        }
-    });
-    
-    window.addEventListener('online', checkOnlineStatus);
-    window.addEventListener('offline', checkOnlineStatus);
-    
-    document.addEventListener('error', function(e) {
-        if (e.target.tagName === 'IMG') {
-            e.target.src = './images/sfondo-home.jpg';
-        }
-    }, true);
-    
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && document.getElementById('admin-panel').style.display === 'flex') {
-            closeAdminPanel();
-        }
-    });
-    
-    document.getElementById('admin-panel').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeAdminPanel();
-        }
-    });
-    
-    // Inizializza nuove funzionalità
-    initializeOfflineSync();
-    setTimeout(() => {
-        setupLazyLoading();
-    }, 1000);
-    
-    logActivity('Applicazione avviata');
-});
 // ============================================
 // ANALYTICS DASHBOARD FUNCTIONS
 // ============================================
@@ -3311,3 +3325,80 @@ function showAdminPanel() {
         updateActivityLog();
     }
 }
+
+// Initialize App
+document.addEventListener('DOMContentLoaded', function() {
+    // Load local data first
+    loadLocalData();
+    checkOnlineStatus();
+    showScreen('home-screen');
+    handleUrlParameters();
+    
+    // Initialize Service Worker and offline sync
+    initializeOfflineSync();
+    
+    // Rest of existing initialization code...
+    setTimeout(async () => {
+        try {
+            await loadFirebaseData('fontane');
+            await loadFirebaseData('beverini');
+            await loadFirebaseData('news');
+            
+            // Update UI if needed
+            if (document.getElementById('fontane-list')?.innerHTML.includes('Caricamento')) {
+                loadFontane();
+            }
+            if (document.getElementById('beverini-list')?.innerHTML.includes('Caricamento')) {
+                loadBeverini();
+            }
+            if (document.getElementById('news-list')?.innerHTML.includes('Caricamento')) {
+                loadNews();
+            }
+            
+        } catch (error) {
+            console.warn('[App] Utilizzo dati locali:', error);
+            showToast('Modalità offline: dati locali caricati', 'info');
+        }
+    }, 1000);
+    
+    document.getElementById('admin-password').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            checkAdminAuth();
+        }
+    });
+    
+    document.getElementById('admin-auth').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAdminAuth();
+        }
+    });
+    
+    window.addEventListener('online', checkOnlineStatus);
+    window.addEventListener('offline', checkOnlineStatus);
+    
+    document.addEventListener('error', function(e) {
+        if (e.target.tagName === 'IMG') {
+            e.target.src = './images/sfondo-home.jpg';
+        }
+    }, true);
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('admin-panel').style.display === 'flex') {
+            closeAdminPanel();
+        }
+    });
+    
+    document.getElementById('admin-panel').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAdminPanel();
+        }
+    });
+    
+    // Inizializza nuove funzionalità
+    setTimeout(() => {
+        setupLazyLoading();
+    }, 1000);
+    
+    logActivity('Applicazione avviata');
+});
+[file content end]

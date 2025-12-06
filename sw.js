@@ -1,13 +1,16 @@
-const CACHE_NAME = 'fontane-beverini-v2.0.0';
-const SYNC_QUEUE = 'sync-queue';
-const MAX_RETRY_ATTEMPTS = 3;
+[file name]: sw.js
+[file content begin]
+const CACHE_NAME = 'fontane-beverini-v2.0.2';
+const STATIC_CACHE = 'static-v2';
+const DYNAMIC_CACHE = 'dynamic-v2';
 
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/app.js',
-  '/manifest.json',
+const STATIC_ASSETS = [
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './analytics.js',
+  './manifest.json',
   './images/logo-app.png',
   './images/logo-comune.png',
   './images/sfondo-home.jpg',
@@ -19,182 +22,425 @@ const urlsToCache = [
   './images/favicon.ico',
   './images/favicon-16x16.png',
   './images/favicon-32x32.png',
+  './images/screenshot-1.png'
+];
+
+const EXTERNAL_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+  'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+  'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png'
 ];
 
+// Install Service Worker
 self.addEventListener('install', event => {
+  console.log('[Service Worker] Installazione in corso...');
+  
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(STATIC_CACHE)
       .then(cache => {
-        console.log('Cache aperta, aggiungendo file...');
-        return cache.addAll(urlsToCache).catch(error => {
-          console.error('Errore cache.addAll:', error);
-          return Promise.all(
-            urlsToCache.map(url => {
-              return cache.add(url).catch(err => {
-                console.warn(`Non posso memorizzare ${url}:`, err);
-              });
-            })
-          );
+        console.log('[Service Worker] Cache asset statici');
+        return cache.addAll(STATIC_ASSETS).catch(error => {
+          console.warn('[Service Worker] Errore cache asset statici:', error);
         });
       })
       .then(() => {
-        console.log('Tutti i file sono stati aggiunti alla cache');
+        console.log('[Service Worker] Installazione completata');
         return self.skipWaiting();
+      })
+      .catch(error => {
+        console.error('[Service Worker] Errore installazione:', error);
       })
   );
 });
 
+// Activate Service Worker
 self.addEventListener('activate', event => {
+  console.log('[Service Worker] Attivazione...');
+  
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME && cacheName !== SYNC_QUEUE) {
-            console.log('Cancellazione vecchia cache:', cacheName);
+          if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
+            console.log('[Service Worker] Cancellazione vecchia cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    }).then(() => {
-      console.log('Service Worker attivato');
+    })
+    .then(() => {
+      console.log('[Service Worker] Attivazione completata');
       return self.clients.claim();
+    })
+    .catch(error => {
+      console.error('[Service Worker] Errore attivazione:', error);
     })
   );
 });
 
+// Fetch Strategy: Cache First with Network Fallback
 self.addEventListener('fetch', event => {
+  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
-
-  if (event.request.url.includes('firebase') || 
-      event.request.url.includes('googleapis')) {
-    event.respondWith(fetch(event.request));
-    return;
+  
+  const url = new URL(event.request.url);
+  
+  // Skip external API calls
+  if (url.href.includes('firebase') ||
+      url.href.includes('nominatim') ||
+      url.href.includes('gstatic.com') ||
+      url.href.includes('googleapis.com') ||
+      url.href.includes('/analytics') ||
+      url.href.includes('/firestore')) {
+    return fetch(event.request);
   }
-
-  if (event.request.url.includes('tile.openstreetmap.org')) {
+  
+  // Special handling for OSM tiles
+  if (url.href.includes('tile.openstreetmap.org') || 
+      url.href.includes('cdn.rawgit.com')) {
     event.respondWith(
-      caches.match(event.request).then(response => {
-        return response || fetch(event.request);
-      })
+      caches.match(event.request)
+        .then(cachedResponse => {
+          // Return cached if available
+          if (cachedResponse) {
+            // Update cache in background
+            fetch(event.request)
+              .then(response => {
+                if (response.ok) {
+                  caches.open(DYNAMIC_CACHE)
+                    .then(cache => cache.put(event.request, response));
+                }
+              })
+              .catch(() => {}); // Ignore errors
+            return cachedResponse;
+          }
+          
+          // Otherwise fetch and cache
+          return fetch(event.request)
+            .then(response => {
+              if (response.ok) {
+                const clone = response.clone();
+                caches.open(DYNAMIC_CACHE)
+                  .then(cache => cache.put(event.request, clone));
+              }
+              return response;
+            });
+        })
     );
     return;
   }
-
+  
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        
-        return fetch(event.request).then(networkResponse => {
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-            return networkResponse;
+      .then(cachedResponse => {
+        // If cached, return it and update in background
+        if (cachedResponse) {
+          // Background update for HTML files
+          if (event.request.headers.get('accept')?.includes('text/html')) {
+            fetch(event.request)
+              .then(response => {
+                if (response.ok) {
+                  caches.open(DYNAMIC_CACHE)
+                    .then(cache => cache.put(event.request, response));
+                }
+              })
+              .catch(() => {}); // Ignore errors
           }
-
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-
-          return networkResponse;
-        });
-      })
-      .catch(() => {
-        if (event.request.url.includes('.html') || 
-            event.request.url === self.location.origin + '/' ||
-            event.request.url === self.location.origin + '/index.html') {
-          return caches.match('/index.html');
+          return cachedResponse;
         }
         
-        return new Response('Connessione assente', {
-          status: 408,
-          headers: { 'Content-Type': 'text/plain' }
-        });
+        // Otherwise fetch from network
+        return fetch(event.request)
+          .then(response => {
+            // Don't cache error responses
+            if (!response.ok) return response;
+            
+            // Clone and cache successful responses
+            const responseToCache = response.clone();
+            caches.open(DYNAMIC_CACHE)
+              .then(cache => cache.put(event.request, responseToCache));
+            
+            return response;
+          })
+          .catch(error => {
+            console.warn('[Service Worker] Fetch fallback:', error);
+            
+            // Return offline page for HTML requests
+            if (event.request.headers.get('accept')?.includes('text/html')) {
+              return caches.match('./index.html');
+            }
+            
+            // Return placeholder for images
+            if (event.request.destination === 'image') {
+              return caches.match('./images/sfondo-home.jpg');
+            }
+            
+            // Return offline message for other requests
+            return new Response('Modalità offline attiva. Riprova quando la connessione sarà disponibile.', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+            });
+          });
       })
   );
 });
 
+// Background Sync for offline data
 self.addEventListener('sync', event => {
+  console.log('[Service Worker] Sync event:', event.tag);
+  
   if (event.tag === 'sync-data') {
-    event.waitUntil(syncOfflineData());
+    event.waitUntil(
+      syncOfflineData().catch(error => {
+        console.error('[Service Worker] Sync error:', error);
+        return Promise.resolve(); // Always resolve to avoid retries
+      })
+    );
   }
 });
 
 async function syncOfflineData() {
-  console.log('Sincronizzazione dati in background...');
+  console.log('[Service Worker] Tentativo sincronizzazione dati offline...');
   
   try {
-    const { collection, getDocs, setDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+    // Notify all clients to sync their offline data
+    const clients = await self.clients.matchAll();
     
-    const offlineData = JSON.parse(localStorage.getItem('offlineData') || '[]');
-    
-    if (offlineData.length === 0) {
-      console.log('Nessun dato offline da sincronizzare');
-      return;
+    if (clients.length === 0) {
+      console.log('[Service Worker] Nessun client attivo per la sincronizzazione');
+      return Promise.resolve();
     }
     
-    console.log(`Sincronizzazione di ${offlineData.length} elementi...`);
-    
-    for (const item of offlineData) {
-      try {
-        const collectionName = item.type === 'fontana' ? 'fontane' : 
-                              item.type === 'beverino' ? 'beverini' : 'news';
-        
-        const dataRef = collection(window.db, collectionName);
-        if (item.id) {
-          const docRef = doc(window.db, collectionName, item.id);
-          await setDoc(docRef, item.data);
-        } else {
-          await setDoc(doc(dataRef), item.data);
-        }
-        
-        console.log(`Sincronizzato: ${item.type} ${item.id || 'nuovo'}`);
-      } catch (error) {
-        console.error(`Errore sincronizzazione ${item.type}:`, error);
-      }
-    }
-    
-    localStorage.removeItem('offlineData');
-    
-    console.log('Sincronizzazione completata');
-    
-    self.clients.matchAll().then(clients => {
-      clients.forEach(client => {
-        client.postMessage({
-          type: 'SYNC_COMPLETE',
-          count: offlineData.length
-        });
+    // Send sync message to all clients
+    const syncPromises = clients.map(client => {
+      return client.postMessage({
+        type: 'SYNC_OFFLINE_DATA',
+        timestamp: new Date().toISOString()
       });
     });
     
+    await Promise.all(syncPromises);
+    console.log('[Service Worker] Messaggio sync inviato a', clients.length, 'client(s)');
+    
+    return Promise.resolve();
   } catch (error) {
-    console.error('Errore nella sincronizzazione background:', error);
+    console.error('[Service Worker] Errore durante sync:', error);
+    return Promise.resolve(); // Always resolve
   }
 }
 
+// Handle messages from the app
 self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'CLEAR_CACHE') {
-    caches.delete(CACHE_NAME).then(() => {
-      event.ports[0].postMessage({ success: true });
-    });
+  console.log('[Service Worker] Messaggio ricevuto:', event.data?.type);
+  
+  const { data, ports } = event;
+  
+  if (data.type === 'CLEAR_CACHE') {
+    caches.keys()
+      .then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+      })
+      .then(() => {
+        if (ports && ports[0]) {
+          ports[0].postMessage({ success: true, message: 'Cache pulita' });
+        }
+      })
+      .catch(error => {
+        if (ports && ports[0]) {
+          ports[0].postMessage({ success: false, error: error.message });
+        }
+      });
   }
   
-  if (event.data && event.data.type === 'GET_CACHE_INFO') {
-    caches.open(CACHE_NAME).then(cache => {
-      cache.keys().then(keys => {
-        event.ports[0].postMessage({ 
-          cacheName: CACHE_NAME,
-          cachedItems: keys.length,
-          urls: keys.map(k => k.url)
-        });
+  if (data.type === 'GET_CACHE_INFO') {
+    caches.keys()
+      .then(cacheNames => {
+        const cacheInfo = cacheNames.map(name => ({ name, size: 'unknown' }));
+        if (ports && ports[0]) {
+          ports[0].postMessage({ caches: cacheInfo });
+        }
+      })
+      .catch(error => {
+        if (ports && ports[0]) {
+          ports[0].postMessage({ error: error.message });
+        }
       });
-    });
+  }
+  
+  if (data.type === 'PRE_CACHE') {
+    const { urls } = data;
+    caches.open(DYNAMIC_CACHE)
+      .then(cache => {
+        const cachePromises = urls.map(url => {
+          return fetch(url)
+            .then(response => {
+              if (response.ok) {
+                return cache.put(url, response);
+              }
+              return Promise.resolve();
+            })
+            .catch(() => Promise.resolve());
+        });
+        
+        return Promise.all(cachePromises);
+      })
+      .then(() => {
+        if (ports && ports[0]) {
+          ports[0].postMessage({ success: true });
+        }
+      })
+      .catch(error => {
+        if (ports && ports[0]) {
+          ports[0].postMessage({ success: false, error: error.message });
+        }
+      });
+  }
+  
+  if (data.type === 'CHECK_UPDATE') {
+    self.registration.update()
+      .then(() => {
+        if (ports && ports[0]) {
+          ports[0].postMessage({ updateAvailable: true });
+        }
+      })
+      .catch(error => {
+        if (ports && ports[0]) {
+          ports[0].postMessage({ updateAvailable: false, error: error.message });
+        }
+      });
   }
 });
+
+// Push notifications (if configured)
+self.addEventListener('push', event => {
+  console.log('[Service Worker] Push notification ricevuta');
+  
+  if (!event.data) return;
+  
+  let notificationData;
+  try {
+    notificationData = event.data.json();
+  } catch {
+    notificationData = {
+      title: 'Fontane Napoli',
+      body: event.data.text() || 'Nuova notifica',
+      icon: './images/icona-avvio-144.png'
+    };
+  }
+  
+  const options = {
+    body: notificationData.body || 'Notifica',
+    icon: notificationData.icon || './images/icona-avvio-144.png',
+    badge: './images/favicon-32x32.png',
+    vibrate: [100, 50, 100],
+    data: {
+      url: notificationData.url || './',
+      timestamp: new Date().toISOString()
+    },
+    actions: [
+      {
+        action: 'open',
+        title: 'Apri'
+      },
+      {
+        action: 'close',
+        title: 'Chiudi'
+      }
+    ]
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification(
+      notificationData.title || 'Fontane & Beverini Napoli',
+      options
+    )
+  );
+});
+
+// Handle notification clicks
+self.addEventListener('notificationclick', event => {
+  console.log('[Service Worker] Notifica cliccata:', event.action);
+  
+  event.notification.close();
+  
+  if (event.action === 'close') {
+    return;
+  }
+  
+  event.waitUntil(
+    clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    }).then(clientList => {
+      // Focus existing window if available
+      for (const client of clientList) {
+        if (client.url.includes(event.notification.data.url) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      
+      // Otherwise open new window
+      if (clients.openWindow) {
+        return clients.openWindow(event.notification.data.url || './');
+      }
+    })
+  );
+});
+
+// Handle notification close
+self.addEventListener('notificationclose', event => {
+  console.log('[Service Worker] Notifica chiusa');
+});
+
+// Periodic sync for background updates (if supported)
+if ('periodicSync' in self.registration) {
+  self.addEventListener('periodicsync', event => {
+    if (event.tag === 'update-cache') {
+      console.log('[Service Worker] Periodic sync per aggiornamento cache');
+      event.waitUntil(updateCache());
+    }
+  });
+}
+
+async function updateCache() {
+  console.log('[Service Worker] Aggiornamento cache periodico');
+  
+  try {
+    // Update static cache
+    const cache = await caches.open(STATIC_CACHE);
+    const requests = await cache.keys();
+    
+    const updatePromises = requests.map(async request => {
+      try {
+        const response = await fetch(request);
+        if (response.ok) {
+          await cache.put(request, response);
+        }
+      } catch (error) {
+        console.warn(`[Service Worker] Errore aggiornamento ${request.url}:`, error);
+      }
+    });
+    
+    await Promise.all(updatePromises);
+    console.log('[Service Worker] Cache aggiornata');
+  } catch (error) {
+    console.error('[Service Worker] Errore aggiornamento cache:', error);
+  }
+}
+
+// Error handling
+self.addEventListener('error', event => {
+  console.error('[Service Worker] Errore:', event.error);
+});
+
+self.addEventListener('unhandledrejection', event => {
+  console.error('[Service Worker] Promise non gestita:', event.reason);
+});
+[file content end]

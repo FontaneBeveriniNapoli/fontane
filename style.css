@@ -1,3 +1,5 @@
+[file name]: style.css
+[file content begin]
 :root {
     --primary-blue: #3b82f6;
     --primary-green: #10b981;
@@ -2588,3 +2590,221 @@ body {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
+
+/* ============================================
+   PWA & OFFLINE SPECIFIC STYLES
+   ============================================ */
+
+/* Offline indicator */
+#offline-indicator {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ef4444;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    z-index: 1100;
+    display: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+/* Install prompt */
+.install-prompt {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 2000;
+    max-width: 90%;
+    width: 350px;
+    display: none;
+}
+
+.install-prompt.show {
+    display: block;
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.install-prompt-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.install-prompt-icon {
+    font-size: 2rem;
+    color: var(--primary-blue);
+}
+
+.install-prompt-text {
+    flex: 1;
+}
+
+.install-prompt-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.install-prompt-desc {
+    font-size: 0.85rem;
+    color: var(--light-text);
+}
+
+.install-prompt-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Update notification */
+.update-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary-blue);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    max-width: 90%;
+}
+
+.update-notification.show {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+.update-notification button {
+    background: white;
+    color: var(--primary-blue);
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.update-notification button:hover {
+    background: #f3f4f6;
+}
+
+/* Standalone mode adjustments */
+@media (display-mode: standalone) {
+    body {
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .tab-bar {
+        height: 70px;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    #home-screen {
+        min-height: 100vh;
+        padding-top: env(safe-area-inset-top);
+    }
+    
+    .admin-icon-btn-container {
+        top: calc(20px + env(safe-area-inset-top));
+    }
+}
+
+/* Print styles for PWA */
+@media print {
+    .tab-bar,
+    .admin-fab,
+    .fixed-navigate-btn,
+    .admin-icon-btn-container {
+        display: none !important;
+    }
+    
+    .screen {
+        display: block !important;
+        min-height: auto;
+    }
+}
+
+/* ============================================
+   SERVICE WORKER DEBUG PANEL (optional)
+   ============================================ */
+
+.sw-debug-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    z-index: 3000;
+    display: none;
+    max-width: 200px;
+}
+
+.sw-debug-panel.show {
+    display: block;
+}
+
+.sw-debug-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+
+.sw-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+}
+
+.sw-status-indicator.offline {
+    background: #ef4444;
+}
+
+.sw-debug-actions {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.sw-debug-btn {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    cursor: pointer;
+}
+
+.sw-debug-btn:hover {
+    background: #2563eb;
+}
+[file content end]
