@@ -5,8 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fontane & Beverini - Napoli</title>
     
+    <!-- ✅ PWA META TAGS -->
+    <meta name="application-name" content="Fontane Napoli">
+    <meta name="description" content="Gestione intelligente delle risorse idriche cittadine">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Fontane Napoli">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- ✅ THEME COLOR PER ANDROID & iOS -->
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="msapplication-TileColor" content="#3b82f6">
+    
+    <!-- ✅ DISPLAY MODE -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="display" content="standalone">
+    
+    <!-- ✅ ORIENTATION -->
+    <meta name="orientation" content="portrait">
+    
     <!-- ✅ PWA MANIFEST -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="./manifest.json">
     
     <!-- ✅ FAVICON per browser desktop -->
     <link rel="icon" type="image/x-icon" href="./images/favicon.ico">
@@ -89,7 +108,7 @@
         
         console.log('Firebase inizializzato con Analytics');
     </script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./style.css">
 </head>
 <body>
     <div class="offline-indicator" id="offline-indicator">
@@ -972,16 +991,16 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     
     <!-- ✅ FILE PRINCIPALI -->
-    <script src="app.js"></script>
+    <script src="./app.js"></script>
     
     <!-- ✅ ANALYTICS COMPLETO -->
-    <script src="analytics.js"></script>
+    <script src="./analytics.js"></script>
     
     <script>
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
+                navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
                         console.log('Service Worker registrato con successo:', registration.scope);
                     })

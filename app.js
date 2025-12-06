@@ -1,3 +1,105 @@
+// ============================================
+// SERVICE WORKER FUNCTIONS
+// ============================================
+
+// Registrazione Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./service-worker.js')
+            .then(function(registration) {
+                console.log('Service Worker registrato con successo:', registration.scope);
+                
+                // Controlla aggiornamenti
+                registration.addEventListener('updatefound', function() {
+                    const newWorker = registration.installing;
+                    console.log('Nuova versione Service Worker trovata');
+                    
+                    newWorker.addEventListener('statechange', function() {
+                        if (newWorker.state === 'installed') {
+                            if (navigator.serviceWorker.controller) {
+                                // Nuovo content disponibile
+                                showToast('Nuova versione disponibile! Ricarica la pagina.', 'info', 10000);
+                            }
+                        }
+                    });
+                });
+                
+                // Verifica periodicamente aggiornamenti (ogni ora)
+                setInterval(() => {
+                    registration.update();
+                }, 60 * 60 * 1000);
+            })
+            .catch(function(error) {
+                console.error('Errore durante la registrazione del Service Worker:', error);
+            });
+    });
+}
+
+// Controlla stato Service Worker
+function checkServiceWorkerStatus() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration()
+            .then(function(registration) {
+                if (registration) {
+                    console.log('Service Worker attivo:', registration.active ? 'Sì' : 'No');
+                    console.log('Scope:', registration.scope);
+                } else {
+                    console.log('Nessun Service Worker registrato');
+                }
+            });
+    }
+}
+
+// Forza aggiornamento Service Worker
+function forceServiceWorkerUpdate() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration()
+            .then(function(registration) {
+                if (registration) {
+                    registration.update();
+                    showToast('Aggiornamento Service Worker forzato', 'info');
+                }
+            });
+    }
+}
+
+// Pulisci cache Service Worker (per sviluppo)
+function clearServiceWorkerCache() {
+    if ('serviceWorker' in navigator) {
+        caches.keys().then(function(cacheNames) {
+            cacheNames.forEach(function(cacheName) {
+                caches.delete(cacheName);
+                console.log('Cache eliminata:', cacheName);
+            });
+            showToast('Cache Service Worker pulita', 'info');
+        });
+        
+        // Deregistra Service Worker
+        navigator.serviceWorker.getRegistrations()
+            .then(function(registrations) {
+                registrations.forEach(function(registration) {
+                    registration.unregister();
+                    console.log('Service Worker deregistrato');
+                });
+            });
+    }
+}
+
+// Verifica supporto API
+function checkServiceWorkerSupport() {
+    const supports = {
+        serviceWorker: 'serviceWorker' in navigator,
+        sync: 'sync' in (navigator.serviceWorker || {}),
+        periodicSync: 'periodicSync' in (navigator.serviceWorker || {}),
+        push: 'PushManager' in window,
+        notification: 'Notification' in window,
+        cache: 'caches' in window
+    };
+    
+    console.log('Supporto API:', supports);
+    return supports;
+}
+
 // Firebase Collections
 const COLLECTIONS = {
     FONTANE: 'fontane',
