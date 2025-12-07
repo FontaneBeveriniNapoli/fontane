@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ABC Napoli F&B</title>
     
     <meta name="application-name" content="ABC Napoli F&B">
@@ -96,8 +96,73 @@
         console.log('Firebase inizializzato con Analytics');
     </script>
     <link rel="stylesheet" href="./style.css">
+    
+    <!-- Aggiunto per prevenire pagina bianca -->
+    <style>
+        /* Prevenire flash bianco durante il caricamento */
+        body:not(.loaded) {
+            background-color: #3b82f6;
+            overflow: hidden;
+        }
+        
+        /* Splash screen iniziale */
+        .initial-splash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        
+        .initial-splash.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .initial-splash-logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 25px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .initial-splash-logo img {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+        }
+        
+        .initial-splash-title {
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+    </style>
 </head>
 <body>
+    <!-- Splash screen iniziale -->
+    <div class="initial-splash" id="initial-splash">
+        <div class="initial-splash-logo">
+            <img src="./images/logo-app.png" alt="ABC Napoli F&B">
+        </div>
+        <div class="initial-splash-title">ABC Napoli F&B</div>
+        <div class="loading-spinner" style="margin-top: 30px; border-color: white; border-top-color: rgba(255,255,255,0.7);"></div>
+    </div>
+    
     <div class="offline-indicator" id="offline-indicator">
         <i class="fas fa-wifi"></i> Connessione assente
     </div>
@@ -1290,13 +1355,51 @@
         
         // Inizializzazione quando la pagina è pronta
         document.addEventListener('DOMContentLoaded', function() {
-            // Carica analytics dashboard dopo un po'
-            setTimeout(() => {
-                if (window.Analytics) {
-                    refreshAnalyticsDashboard();
-                }
-            }, 2000);
+            // Aggiungi classe loaded al body per rimuovere splash screen
+            setTimeout(function() {
+                document.body.classList.add('loaded');
+                document.getElementById('initial-splash').classList.add('hidden');
+                
+                // Carica analytics dashboard dopo un po'
+                setTimeout(() => {
+                    if (window.Analytics) {
+                        refreshAnalyticsDashboard();
+                    }
+                }, 2000);
+            }, 800); // Mostra splash screen per 800ms
         });
+        
+        // Gestione resize per prevenire bordi bianchi
+        window.addEventListener('resize', function() {
+            // Forza il ridimensionamento corretto su mobile
+            if (window.innerWidth <= 768) {
+                document.querySelector('.app-container').style.width = '100vw';
+                document.querySelector('.app-container').style.maxWidth = '100vw';
+            }
+        });
+        
+        // Previeni comportamento di zoom indesiderato su mobile
+        document.addEventListener('touchmove', function(e) {
+            if (e.scale !== 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Gestione della visualizzazione degli ultimi elementi
+        function ensureLastItemsVisible() {
+            setTimeout(function() {
+                const contentAreas = document.querySelectorAll('.content-area');
+                contentAreas.forEach(function(area) {
+                    if (area.scrollHeight > area.clientHeight) {
+                        // Se c'è scroll, assicurati che sia possibile scorrere fino alla fine
+                        area.scrollTop = area.scrollHeight - area.clientHeight;
+                    }
+                });
+            }, 500);
+        }
+        
+        // Chiama la funzione dopo il caricamento dei contenuti
+        window.addEventListener('load', ensureLastItemsVisible);
     </script>
 </body>
 </html>

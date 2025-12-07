@@ -6,39 +6,42 @@
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#f8fafc",
+  "background_color": "#3b82f6",
   "theme_color": "#3b82f6",
   "orientation": "portrait",
+  "lang": "it",
+  "dir": "ltr",
+  "categories": ["navigation", "travel", "utilities"],
   "icons": [
     {
       "src": "./images/icona-avvio-72.png",
       "sizes": "72x72",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "./images/icona-avvio-96.png",
       "sizes": "96x96",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "./images/icona-avvio-128.png",
       "sizes": "128x128",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "./images/icona-avvio-144.png",
       "sizes": "144x144",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "./images/icona-avvio-152.png",
       "sizes": "152x152",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "./images/icona-avvio-192.png",
@@ -50,7 +53,7 @@
       "src": "./images/icona-avvio-384.png",
       "sizes": "384x384",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "./images/icona-avvio-512.png",
@@ -59,19 +62,22 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["navigation", "travel", "utilities"],
   "screenshots": [
     {
       "src": "./images/screenshot-1.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "label": "Schermata principale dell'app"
+      "label": "Schermata principale dell'app",
+      "platform": "wide",
+      "form_factor": "wide"
     },
     {
       "src": "./images/screenshot-2.png",
-      "sizes": "1280x720",
+      "sizes": "750x1334",
       "type": "image/png",
-      "label": "Mappa interattiva"
+      "label": "Mappa interattiva su mobile",
+      "platform": "narrow",
+      "form_factor": "narrow"
     }
   ],
   "shortcuts": [
@@ -143,7 +149,8 @@
       "title": "name",
       "text": "description",
       "url": "link"
-    }
+    },
+    "enctype": "application/x-www-form-urlencoded"
   },
   "capture_links": "new-client",
   "launch_handler": {
@@ -160,6 +167,98 @@
         "application/vnd.ms-excel": [".xls"],
         "text/csv": [".csv"]
       }
+    }
+  ],
+  "handle_links": "preferred",
+  "permissions": [
+    "geolocation",
+    "notifications",
+    "clipboard-write"
+  ],
+  "iarc_rating_id": "e10b-0000-0000-0000",
+  "id": "/abc-napoli-fb",
+  "scope_extensions": [],
+  "theme_color": "#3b82f6",
+  "background_color": "#3b82f6",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "edge_side_panel": {
+    "preferred_width": 360
+  },
+  "launch_handler": {
+    "client_mode": ["auto", "focus-existing", "navigate-new"]
+  },
+  "handle_links": "auto",
+  "orientation": "any",
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+abc",
+      "url": "/index.html?protocol=%s"
+    }
+  ],
+  "related_applications": [],
+  "share_target": {
+    "action": "/index.html",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "shortcuts": [
+    {
+      "name": "Fontane",
+      "short_name": "Fontane",
+      "description": "Visualizza tutte le fontane",
+      "url": "/index.html?screen=fontane",
+      "icons": [
+        {
+          "src": "./images/shortcut-fontane.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Beverini",
+      "short_name": "Beverini",
+      "description": "Visualizza tutti i beverini",
+      "url": "/index.html?screen=beverini",
+      "icons": [
+        {
+          "src": "./images/shortcut-beverini.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Mappa",
+      "short_name": "Mappa",
+      "description": "Apri la mappa interattiva",
+      "url": "/index.html?screen=mappa",
+      "icons": [
+        {
+          "src": "./images/shortcut-mappa.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Pannello Admin",
+      "short_name": "Admin",
+      "description": "Gestisci i contenuti",
+      "url": "/index.html?admin=true",
+      "icons": [
+        {
+          "src": "./images/shortcut-admin.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
