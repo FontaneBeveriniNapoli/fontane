@@ -1,6 +1,6 @@
 {
-  "name": "Fontane & Beverini - Napoli",
-  "short_name": "Fontane Napoli",
+  "name": "ABC Napoli F&B",
+  "short_name": "ABC Napoli F&B",
   "description": "Gestione intelligente delle risorse idriche cittadine. Trova, esplora e monitora tutte le fontane e i beverini della tua città.",
   "start_url": "./index.html",
   "scope": "./",
