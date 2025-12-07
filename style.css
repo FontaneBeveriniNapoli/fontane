@@ -9,8 +9,6 @@
     --light-text: #6b7280;
     --background: #f8fafc;
     --card-bg: #ffffff;
-    /* Colore di sicurezza per evitare flash bianchi (blu scuro simile al tema) */
-    --safe-bg: #0f172a; 
 }
 * {
     margin: 0;
@@ -19,38 +17,29 @@
 }
 body {
     font-family: 'Inter', sans-serif;
-    /* Cambio colore di sfondo del body per evitare flash bianchi */
-    background: var(--safe-bg); 
+    background: var(--background);
     color: var(--dark-text);
     line-height: 1.6;
     min-height: 100vh;
-    min-height: 100dvh; /* Supporto per viewport dinamica mobile */
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
     margin: 0;
     padding: 0;
 }
 .app-container {
-    /* Mobile: Forza larghezza piena per evitare strisce bianche laterali */
-    width: 100%;
-    max-width: 100%; 
-    margin: 0;
+    max-width: 100%;
+    margin: 0 auto;
     min-height: 100vh;
-    min-height: 100dvh;
     position: relative;
     display: flex;
     flex-direction: column;
-    /* Ripristina il colore chiaro per il contenuto dell'app */
-    background: var(--background); 
 }
 .screen {
     display: none;
     flex: 1;
     width: 100%;
     position: relative;
-    /* Padding aumentato per sicurezza */
-    min-height: calc(100vh - 80px); 
-    min-height: calc(100dvh - 80px);
+    min-height: calc(100vh - 60px); /* Sottrae altezza tab bar */
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -64,17 +53,14 @@ body {
                 url('./images/sfondo-home.jpg');
     background-size: cover;
     background-position: center;
-    /* Cambiato da fixed a scroll per coprire tutto su mobile senza bug */
-    background-attachment: scroll; 
+    background-attachment: fixed;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 30px 20px;
     flex: 1;
-    /* Forza altezza minima totale */
-    min-height: 100vh;
-    min-height: 100dvh;
+    min-height: calc(100vh - 60px);
 }
 .logo-container {
     margin-bottom: 25px;
@@ -87,16 +73,8 @@ body {
     width: 100%;
     max-width: 380px;
     align-self: flex-start;
-    /* Centrato su mobile se necessario, altrimenti margine sinistro */
-    margin-left: auto;
-    margin-right: auto;
+    margin-left: 20px;
     flex-shrink: 0;
-}
-@media (max-width: 480px) {
-    .logo-container {
-        margin-left: 0;
-        justify-content: center;
-    }
 }
 .app-logo {
     width: 96px;
@@ -144,10 +122,6 @@ body {
     margin-bottom: 12px;
     text-shadow: 0 2px 10px rgba(0,0,0,0.5);
     width: 100%;
-    /* Centratura contenuto */
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
 }
 .home-subtitle {
     color: rgba(255, 255, 255, 0.9);
@@ -158,9 +132,6 @@ body {
     max-width: 320px;
     margin-bottom: 20px;
     text-shadow: 0 1px 5px rgba(0,0,0,0.3);
-    /* Centratura contenuto */
-    margin-left: auto;
-    margin-right: auto;
 }
 .home-buttons {
     width: 100%;
@@ -170,9 +141,6 @@ body {
     gap: 16px;
     margin-top: auto;
     margin-bottom: auto;
-    /* Centratura contenuto */
-    margin-left: auto;
-    margin-right: auto;
 }
 .button-row {
     display: flex;
@@ -315,11 +283,11 @@ body {
     .logo-container {
         flex-direction: row;
         gap: 15px;
-        justify-content: center;
-        margin-left: 0;
+        margin-left: 10px;
         max-width: 100%;
     }
 }
+/* Stile per il pulsante admin icona sola */
 .admin-icon-btn-container {
     position: absolute;
     top: 20px;
@@ -375,11 +343,13 @@ body {
     color: var(--primary-purple);
 }
 
+/* Per desktop */
 @media (min-width: 1024px) {
     .admin-icon-btn-container {
         top: 30px;
         right: 30px;
     }
+    
     .admin-icon-btn {
         width: 45px;
         height: 45px;
@@ -398,7 +368,6 @@ body {
     text-align: center;
     position: relative;
     flex-shrink: 0;
-    width: 100%;
 }
 #home-screen .app-header {
     background: linear-gradient(135deg, var(--primary-blue), #1d4ed8);
@@ -443,9 +412,7 @@ body {
     padding: 20px;
     flex: 1;
     overflow-y: auto;
-    /* Aumentato a 120px per evitare che l'ultimo elemento sia coperto dalla tab bar */
-    padding-bottom: 120px !important;
-    width: 100%;
+    padding-bottom: 20px;
 }
 .content-area::-webkit-scrollbar {
     width: 6px;
@@ -598,19 +565,12 @@ body {
     color: var(--dark-text);
     line-height: 1.3;
     margin-bottom: 5px;
-    /* Gestione testo a capo */
-    overflow-wrap: break-word;
-    word-break: break-word;
-    hyphens: auto;
 }
 .item-address {
     font-size: 0.85rem;
     color: var(--light-text);
     line-height: 1.4;
     flex: 1;
-    /* Gestione testo a capo */
-    overflow-wrap: break-word;
-    word-break: break-word;
 }
 .item-footer {
     display: flex;
@@ -658,12 +618,10 @@ body {
     display: flex;
     flex-direction: column;
 }
-/* Aumentato padding per footer fisso */
 .detail-content {
     padding: 20px;
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 140px !important;
 }
 .detail-image {
     width: 100%;
@@ -677,8 +635,6 @@ body {
     font-weight: 700;
     margin-bottom: 15px;
     color: var(--dark-text);
-    overflow-wrap: break-word;
-    word-break: break-word;
 }
 .detail-info {
     background: var(--card-bg);
@@ -702,29 +658,7 @@ body {
 .info-value {
     color: var(--light-text);
     flex: 1;
-    /* Testo a capo */
-    overflow-wrap: break-word;
-    word-break: break-word;
 }
-
-.detail-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--card-bg);
-    padding: 15px 20px;
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
-    z-index: 1050; /* Sopra la tab bar */
-    display: flex;
-    gap: 10px;
-}
-
-.detail-footer .detail-actions {
-    margin-top: 0;
-    width: 100%;
-}
-
 .fixed-navigate-btn {
     position: fixed;
     bottom: 70px; /* Sopra la tab bar */
@@ -745,7 +679,6 @@ body {
     justify-content: center;
     gap: 10px;
     transition: all 0.3s ease;
-    white-space: nowrap;
 }
 .fixed-navigate-btn:active {
     transform: translateX(-50%) scale(0.98);
@@ -858,7 +791,6 @@ body {
     padding: 20px;
     background: var(--card-bg);
     border-bottom: 1px solid #e5e7eb;
-    width: 100%;
 }
 .search-input {
     width: 100%;
@@ -1576,18 +1508,15 @@ body {
     line-height: 1.2;
     margin-bottom: 4px;
     flex: 1;
-    /* Gestione testo a capo */
+    word-wrap: break-word;
     overflow-wrap: break-word;
-    word-break: break-word;
-    hyphens: auto;
 }
 .compact-item-address {
     font-size: 0.8rem;
     color: var(--light-text);
     line-height: 1.3;
-    /* Gestione testo a capo */
+    word-wrap: break-word;
     overflow-wrap: break-word;
-    word-break: break-word;
 }
 .compact-item-footer {
     display: flex;
@@ -1649,74 +1578,35 @@ body {
         font-size: 0.7rem;
     }
 }
-
-/* ============================
-   MODIFICHE DESKTOP (FIX STRISCE BIANCHE)
-   ============================ */
 @media (min-width: 1024px) {
     .app-container {
-        /* Rimuoviamo il limite di larghezza sul contenitore principale per avere lo sfondo full width */
-        max-width: 100%;
-        margin: 0;
-        box-shadow: none;
+        max-width: 1200px;
+        margin: 0 auto;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
         min-height: 100vh;
     }
-    
     #home-screen {
         background-attachment: scroll;
         padding: 50px 20px;
-        width: 100%; /* Sfondo full width */
-        align-items: center; /* Centra gli elementi flex */
     }
-
-    /* Centriamo il contenuto mantenendo la larghezza massima di 1200px */
-    .logo-container,
-    .home-title,
-    .home-subtitle,
-    .home-buttons,
-    .content-area,
-    .app-header,
-    .search-container {
-        max-width: 1200px;
-        margin-left: auto;
-        margin-right: auto;
-        width: 100%;
+    .logo-container {
+        max-width: 600px;
+        margin: 0 auto 30px;
+        justify-content: center;
     }
-    
-    .tab-bar {
-        max-width: 1200px;
-        margin: 0 auto;
-        left: 50%;
-        transform: translateX(-50%);
-        border-radius: 25px 25px 0 0;
-        bottom: 20px;
-        width: calc(100% - 40px);
-        box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+    .home-title {
+        font-size: 2.5rem;
+        max-width: 600px;
+        margin: 0 auto 15px;
     }
-    
-    /* Per le liste e le card, manteniamo il layout a griglia centrato */
-    .items-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 25px;
+    .home-subtitle {
+        font-size: 1.1rem;
+        max-width: 500px;
+        margin: 0 auto 40px;
     }
-    
-    .detail-content {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 30px;
-        padding-bottom: 140px !important;
+    .home-buttons {
+        max-width: 600px;
     }
-    
-    .detail-footer {
-        max-width: 1200px;
-        left: 50%;
-        transform: translateX(-50%);
-        border-radius: 25px 25px 0 0;
-        bottom: 0;
-        padding: 20px 30px;
-    }
-    
-    /* ... altri stili desktop mantenuti ma adattati al layout full-width ... */
     .button-row {
         gap: 20px;
     }
@@ -1737,31 +1627,166 @@ body {
     .list-screen, .detail-screen {
         padding-bottom: 80px;
     }
-    
-    /* Fix per la mappa desktop */
-    #mappa-screen {
+    .content-area {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px;
         width: 100%;
     }
+    .items-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+    }
+    .grid-item {
+        border-radius: 25px;
+        transition: all 0.3s ease;
+    }
+    .grid-item:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    }
+    .item-image-container {
+        height: 220px;
+    }
+    .item-name {
+        font-size: 1.2rem;
+    }
+    .item-address {
+        font-size: 0.9rem;
+    }
+    .search-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 25px 30px;
+    }
+    .search-input {
+        padding: 18px 25px;
+        font-size: 1.1rem;
+        border-radius: 18px;
+    }
+    .tab-bar {
+        max-width: 1200px;
+        margin: 0 auto;
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 25px 25px 0 0;
+        bottom: 20px;
+        width: calc(100% - 40px);
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+    }
+    .tab-btn {
+        font-size: 0.85rem;
+        min-height: 50px;
+        border-radius: 15px;
+    }
+    .tab-icon {
+        font-size: 1.3rem;
+    }
+    .detail-content {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 30px;
+    }
+    .detail-image {
+        height: 350px;
+        border-radius: 25px;
+    }
+    .detail-name {
+        font-size: 1.8rem;
+    }
+    .detail-info {
+        border-radius: 25px;
+        padding: 25px;
+    }
+    .info-item {
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+    }
+    .fixed-navigate-btn {
+        bottom: 100px;
+        padding: 16px 35px;
+        font-size: 1.2rem;
+    }
+    .admin-fab {
+        bottom: 100px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        font-size: 1.3rem;
+    }
+    .map-legend {
+        top: 100px;
+        right: 20px;
+        padding: 15px;
+        border-radius: 15px;
+        max-width: 200px;
+    }
+    .news-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .news-card {
+        border-radius: 25px;
+        padding: 25px;
+    }
+    .news-title {
+        font-size: 1.4rem;
+    }
+    .news-content {
+        font-size: 1.05rem;
+    }
+    .admin-panel-content {
+        max-width: 1000px;
+    }
+    .admin-table-container {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .compact-items-list {
+        gap: 15px;
+    }
+    .compact-item {
+        min-height: 90px;
+        border-radius: 18px;
+    }
+    .compact-item-image {
+        width: 90px;
+        height: 90px;
+        border-radius: 18px 0 0 18px;
+    }
+    .compact-item-content {
+        padding: 15px 20px;
+        min-height: 90px;
+    }
+    .compact-item-name {
+        font-size: 1.1rem;
+    }
+    .compact-item-address {
+        font-size: 0.85rem;
+    }
+    .screen {
+        min-height: calc(100vh - 80px); /* Tab bar più alta su desktop */
+    }
+    
+    #home-screen {
+        min-height: calc(100vh - 80px);
+    }
+    
     #map {
         min-height: calc(100vh - 80px);
     }
-    .map-controls {
-        left: calc(50% - 600px + 20px); /* Posiziona i controlli all'interno dell'area 1200px */
-    }
-    @media (max-width: 1240px) {
-        .map-controls {
-            left: 20px;
-        }
-    }
 }
-
 @media (min-width: 1440px) {
-    /* Manteniamo il contenuto centrato anche su schermi molto grandi */
+    .app-container {
+        max-width: 1400px;
+    }
     .items-grid {
         grid-template-columns: repeat(4, 1fr);
     }
+    .content-area {
+        max-width: 1400px;
+    }
 }
-
 .dashboard-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -2195,7 +2220,6 @@ body {
     
     .content-area {
         padding: 15px;
-        padding-bottom: 120px !important;
     }
 }
 
@@ -2909,8 +2933,8 @@ body {
 /* Safe area insets per notche */
 @supports (padding: max(0px)) {
     .app-container {
-        padding-left: max(0px, env(safe-area-inset-left));
-        padding-right: max(0px, env(safe-area-inset-right));
+        padding-left: max(20px, env(safe-area-inset-left));
+        padding-right: max(20px, env(safe-area-inset-right));
     }
     
     .tab-bar {

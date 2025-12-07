@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fontane-beverini-v2.0.3'; // Incrementata versione per forzare aggiornamento CSS
+const CACHE_NAME = 'fontane-beverini-v2.0.2';
 const STATIC_CACHE = 'static-v2';
 const DYNAMIC_CACHE = 'dynamic-v2';
 
