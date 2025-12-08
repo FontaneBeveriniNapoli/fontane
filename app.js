@@ -806,6 +806,257 @@ let isAdminAuthenticated = false;
 let adminAuthTimeout = null;
 
 // ============================================
+// GESTIONE TASTO INDIETRO - VERSIONE CON CONFERMA DOPPIO CLIC
+// ============================================
+
+let backButtonPressTimer = null;
+let backButtonPressCount = 0;
+const BACK_BUTTON_DOUBLE_TAP_DELAY = 2000; // 2 secondi per il doppio clic
+
+// Gestione tasto indietro fisico/software
+function setupBackButtonHandler() {
+    // Inseriamo uno stato iniziale fittizio per attivare la history
+    window.history.pushState({ page: 'app_root' }, document.title, window.location.href);
+
+    // Ascoltiamo il cambiamento di stato (tasto indietro premuto)
+    window.addEventListener('popstate', function(event) {
+        // Gestione doppio clic per uscita
+        handleDoubleTapBackNavigation();
+    });
+}
+
+/**
+ * Gestisce la logica del tasto indietro con doppio clic per uscita
+ */
+function handleDoubleTapBackNavigation() {
+    const currentScreen = screenHistory[screenHistory.length - 1];
+    
+    // 1. Controllo Modali/Overlay (Priorità massima) - Singolo clic
+    if (handleModalBackNavigation()) {
+        return;
+    }
+    
+    // 2. Controllo Navigazione Schermate - Singolo clic
+    if (handleScreenBackNavigation()) {
+        return;
+    }
+    
+    // 3. Siamo nella Home -> Gestione doppio clic per uscita
+    if (currentScreen === 'home-screen') {
+        handleHomeScreenBackNavigation();
+    }
+}
+
+/**
+ * Gestisce la chiusura dei modali con singolo clic
+ * @returns {boolean} true se è stato gestito un modale
+ */
+function handleModalBackNavigation() {
+    // Auth Admin
+    const adminAuth = document.getElementById('admin-auth');
+    if (adminAuth && adminAuth.style.display === 'flex') {
+        closeAdminAuth();
+        resetBackButtonTimer();
+        return true;
+    }
+
+    // Pannello Admin
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel && adminPanel.style.display === 'flex') {
+        closeAdminPanel();
+        resetBackButtonTimer();
+        return true;
+    }
+    
+    // Modale Navigazione
+    const navModal = document.getElementById('navigation-modal');
+    if (navModal && navModal.style.display === 'flex') {
+        closeNavigationModal();
+        resetBackButtonTimer();
+        return true;
+    }
+    
+    // Modale Info
+    const infoModal = document.getElementById('info-modal');
+    if (infoModal && infoModal.style.display === 'flex') {
+        closeInfoModal();
+        resetBackButtonTimer();
+        return true;
+    }
+    
+    // Modale Istruzioni Installazione (se presente)
+    const installModal = document.querySelector('.install-instructions');
+    if (installModal && installModal.style.display === 'flex') {
+        installModal.style.display = 'none';
+        resetBackButtonTimer();
+        return true;
+    }
+    
+    // Risultati ricerca mappa (se visibili)
+    const searchResults = document.getElementById('map-search-results');
+    if (searchResults && searchResults.style.display === 'block') {
+        searchResults.style.display = 'none';
+        resetBackButtonTimer();
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Gestisce la navigazione tra schermate con singolo clic
+ * @returns {boolean} true se è stata gestita una navigazione
+ */
+function handleScreenBackNavigation() {
+    const currentScreen = screenHistory[screenHistory.length - 1];
+    
+    // Se siamo nella schermata di dettaglio, torniamo alla lista
+    if (currentScreen && currentScreen.includes('detail-screen')) {
+        goBack();
+        resetBackButtonTimer();
+        return true;
+    }
+    
+    // Se non siamo nella home, torna indietro nella cronologia schermate
+    if (currentScreen !== 'home-screen') {
+        goBack();
+        resetBackButtonTimer();
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Gestisce il comportamento nella home screen con doppio clic
+ */
+function handleHomeScreenBackNavigation() {
+    const now = Date.now();
+    
+    // Reset del timer se è passato troppo tempo
+    if (backButtonPressTimer && (now - backButtonPressTimer > BACK_BUTTON_DOUBLE_TAP_DELAY)) {
+        resetBackButtonTimer();
+    }
+    
+    // Primo clic o reset timer
+    if (backButtonPressCount === 0) {
+        backButtonPressCount = 1;
+        backButtonPressTimer = now;
+        
+        // Mostra messaggio che richiede un altro clic per uscire
+        showBackExitToast();
+        
+        // Reinserisci stato nella history per evitare uscita immediata
+        setTimeout(() => {
+            window.history.pushState({ page: 'app_active' }, document.title, window.location.href);
+        }, 100);
+        
+        // Avvia timer per reset automatico
+        setTimeout(() => {
+            if (backButtonPressCount === 1) {
+                showToast('Uscita annullata', 'info', 1000);
+                resetBackButtonTimer();
+            }
+        }, BACK_BUTTON_DOUBLE_TAP_DELAY);
+        
+        return;
+    }
+    
+    // Secondo clic entro il tempo limite -> USCITA
+    if (backButtonPressCount === 1 && (now - backButtonPressTimer <= BACK_BUTTON_DOUBLE_TAP_DELAY)) {
+        // Conferma uscita
+        confirmAppExit();
+        resetBackButtonTimer();
+        return;
+    }
+}
+
+/**
+ * Mostra toast per richiedere secondo clic per uscire
+ */
+function showBackExitToast() {
+    // Crea o recupera toast specifico per uscita
+    let exitToast = document.getElementById('exit-toast');
+    
+    if (!exitToast) {
+        exitToast = document.createElement('div');
+        exitToast.id = 'exit-toast';
+        exitToast.className = 'exit-toast';
+        document.body.appendChild(exitToast);
+    }
+    
+    const timeLeft = Math.floor(BACK_BUTTON_DOUBLE_TAP_DELAY / 1000);
+    exitToast.innerHTML = `
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Premi di nuovo per uscire (${timeLeft}s)</span>
+    `;
+    exitToast.classList.add('show');
+    
+    // Aggiorna contatore
+    let secondsLeft = timeLeft;
+    const countdownInterval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft > 0) {
+            exitToast.innerHTML = `
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Premi di nuovo per uscire (${secondsLeft}s)</span>
+            `;
+        } else {
+            clearInterval(countdownInterval);
+            exitToast.classList.remove('show');
+        }
+    }, 1000);
+}
+
+/**
+ * Conferma uscita dall'app
+ */
+function confirmAppExit() {
+    // Se è una PWA, potremmo volerla chiudere o minimizzare
+    if (window.matchMedia('(display-mode: standalone)').matches || 
+        window.navigator.standalone ||
+        document.referrer.includes('android-app://')) {
+        
+        // Per PWA/Android: mostra messaggio di uscita
+        showToast('App chiusa', 'info', 2000);
+        
+        // Opzione 1: Minimizza (non c'è modo standard per chiudere PWA)
+        setTimeout(() => {
+            // Simuliamo comportamento "indietro" del sistema
+            if (window.history.length > 1) {
+                window.history.go(-1);
+            } else {
+                // Se non c'è history, lasciamo che il sistema gestisca
+                // (sui dispositivi Android spesso minimizza l'app)
+            }
+        }, 500);
+        
+    } else {
+        // Per browser web: comportamento normale
+        showToast('Uscita', 'info', 1000);
+        
+        // Permetti la navigazione indietro nel browser
+        // (non reinseriamo lo stato nella history)
+    }
+    
+    logActivity('Utente ha chiesto di uscire dall\'app (doppio clic indietro)');
+}
+
+/**
+ * Resetta il timer del tasto indietro
+ */
+function resetBackButtonTimer() {
+    backButtonPressCount = 0;
+    backButtonPressTimer = null;
+    
+    // Nascondi toast di uscita se visibile
+    const exitToast = document.getElementById('exit-toast');
+    if (exitToast) {
+        exitToast.classList.remove('show');
+    }
+}
+
+// ============================================
 // FUNZIONI ORIGINALI (MODIFICATE CON NUOVE FEATURES)
 // ============================================
 
@@ -1040,6 +1291,7 @@ function closeAdminAuth() {
     document.getElementById('admin-auth').style.display = 'none';
     document.getElementById('admin-password').value = '';
     document.getElementById('auth-error').style.display = 'none';
+    resetBackButtonTimer(); // Reset timer quando si chiude auth
 }
 
 async function checkAdminAuth() {
@@ -1094,6 +1346,7 @@ function showAdminPanel() {
 
 function closeAdminPanel() {
     document.getElementById('admin-panel').style.display = 'none';
+    resetBackButtonTimer(); // Reset timer quando si chiude panel
 }
 
 function logoutAdmin() {
@@ -1136,6 +1389,8 @@ function showScreen(screenId) {
     
     updateTabBar(screenId);
     document.getElementById('fixed-navigate-btn').classList.add('hidden');
+    
+    resetBackButtonTimer(); // Reset timer quando si cambia schermata
 }
 
 function goBack() {
@@ -1156,6 +1411,8 @@ function goBack() {
             initializeScreenContent(previousScreen);
         }
         updateTabBar(previousScreen);
+        
+        resetBackButtonTimer(); // Reset timer quando si torna indietro
     } else {
         showScreen('home-screen');
     }
@@ -1502,6 +1759,8 @@ function showDetail(id, type) {
     currentLatLng = { lat: item.latitudine, lng: item.longitudine };
     document.getElementById('fixed-navigate-btn').classList.remove('hidden');
     showScreen(screenId);
+    
+    resetBackButtonTimer(); // Reset timer quando si visualizza dettaglio
 }
 
 function generateDetailHTML(item, type) {
@@ -1573,6 +1832,7 @@ function openAppleMaps() {
 function closeNavigationModal() {
     document.getElementById('navigation-modal').style.display = 'none';
     currentLatLng = null;
+    resetBackButtonTimer(); // Reset timer quando si chiude modale navigazione
 }
 
 // Map Functions
@@ -2188,7 +2448,7 @@ async function saveFontana(e) {
                     appData.fontane[index] = { id: savedId, ...fontanaData };
                 }
             } else {
-                appData.fontane.push({ id: savedId, ...fontanaData });
+                appData.fontane.push({ id: savedId, ...fontanaData };
             }
             
             showToast('Fontana salvata localmente. Sarà sincronizzata online dopo.', 'info');
@@ -2854,6 +3114,7 @@ function showInfoModal(title, message) {
 
 function closeInfoModal() {
     document.getElementById('info-modal').style.display = 'none';
+    resetBackButtonTimer(); // Reset timer quando si chiude info modal
 }
 
 function checkOnlineStatus() {
@@ -3359,112 +3620,6 @@ function forceSyncAnalytics() {
 }
 
 // ============================================
-// GESTIONE TASTO INDIETRO ANDROID (CORRETTO)
-// ============================================
-
-// Gestione tasto indietro fisico/software
-function setupBackButtonHandler() {
-    // Unifichiamo la gestione: funziona sia per PWA che per Browser
-    // L'unica differenza è che nella PWA vogliamo "intrappolare" l'utente nell'app
-    // finché non è nella home.
-    
-    // 1. Inseriamo uno stato iniziale fittizio per attivare la history
-    window.history.pushState({ page: 'app_root' }, document.title, window.location.href);
-
-    // 2. Ascoltiamo il cambiamento di stato (tasto indietro premuto)
-    window.addEventListener('popstate', function(event) {
-        // Tentiamo di gestire la navigazione internamente
-        const actionTaken = handleBackNavigation();
-
-        if (actionTaken) {
-            // Se abbiamo gestito l'azione (es. chiuso un modale o cambiato schermata),
-            // dobbiamo RIPRISTINARE lo stato nella history, altrimenti al prossimo
-            // "back" l'app si chiuderà perché abbiamo consumato lo stato precedente.
-            window.history.pushState({ page: 'app_active' }, document.title, window.location.href);
-        } else {
-            // Se siamo nella Home e non ci sono modali aperti (actionTaken = false),
-            // lasciamo che l'evento popstate faccia il suo corso.
-            // In una PWA questo chiuderà l'app o la metterà in background.
-            // Se vogliamo chiedere conferma prima di uscire:
-             if (window.matchMedia('(display-mode: standalone)').matches) {
-                // Opzionale: Reinserisci lo stato se l'utente annulla l'uscita
-                // window.history.pushState({ page: 'app_root' }, ...);
-             }
-        }
-    });
-}
-
-/**
- * Gestisce la logica del tasto indietro.
- * @returns {boolean} true se l'azione è stata gestita internamente (non uscire), false se si deve uscire.
- */
-function handleBackNavigation() {
-    console.log('Tasto indietro premuto - Stato navigazione:', screenHistory);
-    
-    // 1. Controllo Modali/Overlay (Priorità massima)
-    
-    // Auth Admin
-    const adminAuth = document.getElementById('admin-auth');
-    if (adminAuth && adminAuth.style.display === 'flex') {
-        closeAdminAuth();
-        return true;
-    }
-
-    // Pannello Admin
-    const adminPanel = document.getElementById('admin-panel');
-    if (adminPanel && adminPanel.style.display === 'flex') {
-        closeAdminPanel();
-        return true;
-    }
-    
-    // Modale Navigazione
-    const navModal = document.getElementById('navigation-modal');
-    if (navModal && navModal.style.display === 'flex') {
-        closeNavigationModal();
-        return true;
-    }
-    
-    // Modale Info
-    const infoModal = document.getElementById('info-modal');
-    if (infoModal && infoModal.style.display === 'flex') {
-        closeInfoModal();
-        return true;
-    }
-    
-    // Modale Istruzioni Installazione (se presente)
-    const installModal = document.querySelector('.install-instructions');
-    if (installModal && installModal.style.display === 'flex') {
-        installModal.style.display = 'none'; // Assumendo che ci sia una funzione o stile per chiuderlo
-        return true;
-    }
-    
-    // Risultati ricerca mappa (se visibili)
-    const searchResults = document.getElementById('map-search-results');
-    if (searchResults && searchResults.style.display === 'block') {
-        searchResults.style.display = 'none';
-        return true;
-    }
-
-    // 2. Controllo Navigazione Schermate
-    
-    // Se siamo nella schermata di dettaglio, torniamo alla lista
-    const currentScreen = screenHistory[screenHistory.length - 1];
-    if (currentScreen && currentScreen.includes('detail-screen')) {
-        goBack();
-        return true;
-    }
-    
-    // Se non siamo nella home, torna indietro nella cronologia schermate
-    if (currentScreen !== 'home-screen') {
-        goBack();
-        return true;
-    } 
-
-    // 3. Siamo nella Home e nessun modale è aperto -> Uscita
-    return false;
-}
-
-// ============================================
 // Initialize App (MODIFICATO)
 // ============================================
 
@@ -3474,10 +3629,8 @@ document.addEventListener('DOMContentLoaded', function() {
     showScreen('home-screen');
     handleUrlParameters();
     
-    // ✅ Inizializza gestione tasto indietro (Nuova funzione corretta)
+    // ✅ Inizializza gestione tasto indietro con doppio clic
     setupBackButtonHandler();
-    
-    // ✅ Rimuoviamo pushAppState() perché ora è gestita dentro setupBackButtonHandler
     
     // ✅ Registra Service Worker (versione corretta)
     if ('serviceWorker' in navigator) {
