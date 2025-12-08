@@ -1,5 +1,5 @@
 [file content begin]
-const CACHE_NAME = 'fontane-beverini-v2.0.7';
+const CACHE_NAME = 'fontane-beverini-v3.0.1';
 const STATIC_CACHE = 'static-v2';
 const DYNAMIC_CACHE = 'dynamic-v2';
 
