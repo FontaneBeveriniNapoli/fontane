@@ -2557,8 +2557,9 @@ body {
     }
 }
 
-/* Sync indicator */
+/* MODIFICA: Sync indicator nascosto */
 .sync-indicator {
+    display: none !important; /* AGGIUNTA QUESTA RIGA PER NASCONDERE IL PULSANTE */
     position: fixed;
     bottom: 70px;
     right: 20px;

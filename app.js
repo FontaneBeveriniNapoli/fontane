@@ -670,6 +670,10 @@ async function checkForPendingSync() {
 
 // Aggiorna UI sync
 function updateSyncUI() {
+    // MODIFICA: Abbiamo disabilitato la creazione dell'indicatore visivo
+    return;
+
+    /* CODICE ORIGINALE COMMENTATO:
     let syncIndicator = document.getElementById('sync-indicator');
     
     if (!syncIndicator) {
@@ -690,6 +694,7 @@ function updateSyncUI() {
         syncIndicator.classList.remove('syncing', 'pending');
         syncIndicator.title = 'Tutto sincronizzato';
     }
+    */
 }
 
 // Salva stato sync
