@@ -1,24 +1,45 @@
 // ============================================
-// SERVICE WORKER FUNCTIONS
+// SERVICE WORKER FUNCTIONS - VERSIONE CORRETTA
 // ============================================
 
-// Registrazione Service Worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-        navigator.serviceWorker.register('./service-worker.js')
+// Registrazione Service Worker - VERSIONE MIGLIORATA
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        // Usa percorso corretto
+        const swUrl = './sw.js';
+        
+        return navigator.serviceWorker.register(swUrl)
             .then(function(registration) {
-                console.log('Service Worker registrato con successo:', registration.scope);
+                console.log('✅ Service Worker registrato con successo:', registration.scope);
+                
+                // Controlla se è la prima registrazione
+                if (!navigator.serviceWorker.controller) {
+                    console.log('🔄 Service Worker installato per la prima volta');
+                } else {
+                    console.log('📱 Service Worker già attivo');
+                }
                 
                 // Controlla aggiornamenti
                 registration.addEventListener('updatefound', function() {
                     const newWorker = registration.installing;
-                    console.log('Nuova versione Service Worker trovata');
+                    console.log('🔄 Nuova versione Service Worker trovata');
                     
                     newWorker.addEventListener('statechange', function() {
+                        console.log(`📊 Stato SW: ${newWorker.state}`);
+                        
                         if (newWorker.state === 'installed') {
                             if (navigator.serviceWorker.controller) {
                                 // Nuovo content disponibile
                                 showToast('Nuova versione disponibile! Ricarica la pagina.', 'info', 10000);
+                                
+                                // Aggiungi pulsante per forzare aggiornamento
+                                setTimeout(() => {
+                                    if (confirm('È disponibile un aggiornamento. Vuoi ricaricare l\'applicazione?')) {
+                                        window.location.reload();
+                                    }
+                                }, 2000);
+                            } else {
+                                console.log('📱 Service Worker installato per la prima volta');
                             }
                         }
                     });
@@ -28,11 +49,23 @@ if ('serviceWorker' in navigator) {
                 setInterval(() => {
                     registration.update();
                 }, 60 * 60 * 1000);
+                
+                return registration;
             })
             .catch(function(error) {
-                console.error('Errore durante la registrazione del Service Worker:', error);
+                console.error('❌ Errore durante la registrazione del Service Worker:', error);
+                
+                // Fallback: mostra messaggio utente friendly
+                if (error.message.includes('404')) {
+                    console.warn('⚠️ Service Worker non trovato. Modalità offline non disponibile.');
+                }
+                
+                return null;
             });
-    });
+    } else {
+        console.warn('⚠️ Service Worker non supportato dal browser');
+        return null;
+    }
 }
 
 // Controlla stato Service Worker
@@ -1047,6 +1080,10 @@ function showAdminPanel() {
     loadAdminBeverini();
     loadAdminNews();
     updateDashboardStats();
+    
+    // ✅ CARICA ANALYTICS DASHBOARD
+    loadAnalyticsDashboard();
+    updatePerformanceMetrics();
     
     const savedLog = localStorage.getItem('activityLog');
     if (savedLog) {
@@ -2846,6 +2883,19 @@ document.addEventListener('DOMContentLoaded', function() {
     showScreen('home-screen');
     handleUrlParameters();
     
+    // ✅ Inizializza gestione tasto indietro
+    setupBackButtonHandler();
+    
+    // ✅ Push stato iniziale per gestione back button
+    pushAppState();
+    
+    // ✅ Registra Service Worker (versione corretta)
+    if ('serviceWorker' in navigator) {
+        setTimeout(() => {
+            registerServiceWorker();
+        }, 1000);
+    }
+    
     setTimeout(async () => {
         try {
             await loadFirebaseData('fontane');
@@ -2908,6 +2958,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     logActivity('Applicazione avviata');
 });
+
 // ============================================
 // ANALYTICS DASHBOARD FUNCTIONS
 // ============================================
@@ -3391,25 +3442,140 @@ function forceSyncAnalytics() {
 }
 
 // ============================================
-// MODIFICA showAdminPanel PER INCLUDERE ANALYTICS
+// GESTIONE TASTO INDIETRO ANDROID
 // ============================================
 
-function showAdminPanel() {
-    document.getElementById('admin-panel').style.display = 'flex';
-    
-    // Carica dati standard
-    loadAdminFontane();
-    loadAdminBeverini();
-    loadAdminNews();
-    updateDashboardStats();
-    
-    // ✅ CARICA ANALYTICS DASHBOARD
-    loadAnalyticsDashboard();
-    updatePerformanceMetrics();
-    
-    const savedLog = localStorage.getItem('activityLog');
-    if (savedLog) {
-        activityLog = JSON.parse(savedLog);
-        updateActivityLog();
+// Gestione tasto indietro fisico/software
+function setupBackButtonHandler() {
+    // Supporto per browser mobile
+    if ('standalone' in navigator || window.matchMedia('(display-mode: standalone)').matches) {
+        // PWA installata
+        setupPwaBackNavigation();
+    } else {
+        // Browser normale
+        setupBrowserBackNavigation();
     }
+}
+
+// Navigazione per PWA
+function setupPwaBackNavigation() {
+    let backButtonPressed = false;
+    
+    // Intercetta popstate (cambiamenti URL)
+    window.addEventListener('popstate', function(event) {
+        if (!backButtonPressed) {
+            // Previeni comportamento predefinito
+            event.preventDefault();
+            
+            // Gestisci navigazione personalizzata
+            handleBackNavigation();
+        }
+        backButtonPressed = false;
+    });
+    
+    // Aggiungi listener per hardware back button (Android)
+    document.addEventListener('backbutton', function(e) {
+        e.preventDefault();
+        backButtonPressed = true;
+        handleBackNavigation();
+    }, false);
+    
+    // Aggiungi supporto per gesture swipe (iOS)
+    let touchStartX = 0;
+    let touchStartY = 0;
+    
+    document.addEventListener('touchstart', function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, false);
+    
+    document.addEventListener('touchend', function(e) {
+        const touchEndX = e.changedTouches[0].screenX;
+        const touchEndY = e.changedTouches[0].screenY;
+        
+        // Se swipe da sinistra a destra (back gesture)
+        if (touchEndX - touchStartX > 100 && Math.abs(touchEndY - touchStartY) < 50) {
+            handleBackNavigation();
+        }
+    }, false);
+}
+
+// Navigazione per browser
+function setupBrowserBackNavigation() {
+    let isBackButtonPressed = false;
+    
+    // Intercetta popstate
+    window.addEventListener('popstate', function(event) {
+        if (!isBackButtonPressed) {
+            // Gestisci navigazione personalizzata
+            handleBackNavigation();
+            
+            // Previeni comportamento predefinito del browser
+            event.preventDefault();
+            
+            // Reimposta stato
+            isBackButtonPressed = false;
+        }
+    });
+    
+    // Override del pulsante back del browser
+    window.history.pushState({ page: 'app' }, null, window.location.href);
+    window.onpopstate = function(event) {
+        if (event.state && event.state.page === 'app') {
+            handleBackNavigation();
+            // Mantieni l'app nello stesso stato
+            window.history.pushState({ page: 'app' }, null, window.location.href);
+        }
+    };
+}
+
+// Gestione logica del tasto indietro
+function handleBackNavigation() {
+    console.log('Tasto indietro premuto - Stato navigazione:', screenHistory);
+    
+    // Se siamo nella schermata di dettaglio
+    const currentScreen = screenHistory[screenHistory.length - 1];
+    if (currentScreen.includes('detail-screen')) {
+        goBack();
+        return;
+    }
+    
+    // Se siamo nel pannello admin
+    if (document.getElementById('admin-panel').style.display === 'flex') {
+        if (document.getElementById('admin-auth').style.display === 'flex') {
+            closeAdminAuth();
+        } else {
+            closeAdminPanel();
+        }
+        return;
+    }
+    
+    // Se siamo nella modale di navigazione
+    if (document.getElementById('navigation-modal').style.display === 'flex') {
+        closeNavigationModal();
+        return;
+    }
+    
+    // Se siamo nella modale info
+    if (document.getElementById('info-modal').style.display === 'flex') {
+        closeInfoModal();
+        return;
+    }
+    
+    // Se non siamo nella home, torna indietro
+    if (currentScreen !== 'home-screen') {
+        goBack();
+    } else {
+        // Se siamo già nella home, mostra conferma chiusura (solo su Android)
+        if (/Android/i.test(navigator.userAgent)) {
+            if (confirm('Premi OK per uscire dall\'app')) {
+                navigator.app && navigator.app.exitApp ? navigator.app.exitApp() : window.close();
+            }
+        }
+    }
+}
+
+// Funzione helper per gestire la navigazione
+function pushAppState() {
+    window.history.pushState({ page: 'app' }, null, window.location.href);
 }

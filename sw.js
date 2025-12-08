@@ -1,3 +1,4 @@
+[file content begin]
 const CACHE_NAME = 'fontane-beverini-v2.0.2';
 const STATIC_CACHE = 'static-v2';
 const DYNAMIC_CACHE = 'dynamic-v2';
@@ -97,12 +98,22 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch Strategy: Cache First with Network Fallback - VERSIONE ROBUSTA
+// Fetch Strategy: Cache First with Network Fallback - VERSIONE CORRETTA
 self.addEventListener('fetch', event => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
   
   const url = new URL(event.request.url);
+  
+  // MODIFICA: Ignora URL con schemi non supportati (chrome-extension://, chrome://, etc.)
+  if (url.protocol === 'chrome-extension:' || 
+      url.protocol === 'chrome:' || 
+      url.protocol === 'about:' ||
+      url.protocol === 'data:' ||
+      url.protocol === 'blob:' ||
+      url.protocol === 'file:') {
+    return;
+  }
   
   // Skip external API calls
   if (url.href.includes('firebase') ||
@@ -174,7 +185,13 @@ self.addEventListener('fetch', event => {
             // Clone and cache successful responses
             const responseToCache = response.clone();
             caches.open(DYNAMIC_CACHE)
-              .then(cache => cache.put(event.request, responseToCache));
+              .then(cache => {
+                // MODIFICA: Verifica ulteriore che l'URL sia valido per il caching
+                if (event.request.url.startsWith('http')) {
+                  return cache.put(event.request, responseToCache);
+                }
+              })
+              .catch(err => console.warn('[SW] Cache put error:', err));
             
             return response;
           })
@@ -258,81 +275,88 @@ self.addEventListener('message', event => {
   
   const { data, ports } = event;
   
-  if (data.type === 'CLEAR_CACHE') {
-    caches.keys()
-      .then(cacheNames => {
-        return Promise.all(
-          cacheNames.map(cacheName => caches.delete(cacheName))
-        );
-      })
-      .then(() => {
-        if (ports && ports[0]) {
-          ports[0].postMessage({ success: true, message: 'Cache pulita' });
-        }
-      })
-      .catch(error => {
-        if (ports && ports[0]) {
-          ports[0].postMessage({ success: false, error: error.message });
-        }
-      });
-  }
-  
-  if (data.type === 'GET_CACHE_INFO') {
-    caches.keys()
-      .then(cacheNames => {
-        const cacheInfo = cacheNames.map(name => ({ name, size: 'unknown' }));
-        if (ports && ports[0]) {
-          ports[0].postMessage({ caches: cacheInfo });
-        }
-      })
-      .catch(error => {
-        if (ports && ports[0]) {
-          ports[0].postMessage({ error: error.message });
-        }
-      });
-  }
-  
-  if (data.type === 'PRE_CACHE') {
-    const { urls } = data;
-    caches.open(DYNAMIC_CACHE)
-      .then(cache => {
-        const cachePromises = urls.map(url => {
-          return fetch(url)
-            .then(response => {
-              if (response.ok) {
-                return cache.put(url, response);
-              }
-              return Promise.resolve();
-            })
-            .catch(() => Promise.resolve());
+  if (data && data.type) {
+    if (data.type === 'CLEAR_CACHE') {
+      caches.keys()
+        .then(cacheNames => {
+          return Promise.all(
+            cacheNames.map(cacheName => caches.delete(cacheName))
+          );
+        })
+        .then(() => {
+          if (ports && ports[0]) {
+            ports[0].postMessage({ success: true, message: 'Cache pulita' });
+          }
+        })
+        .catch(error => {
+          if (ports && ports[0]) {
+            ports[0].postMessage({ success: false, error: error.message });
+          }
         });
-        
-        return Promise.all(cachePromises);
-      })
-      .then(() => {
-        if (ports && ports[0]) {
-          ports[0].postMessage({ success: true });
-        }
-      })
-      .catch(error => {
-        if (ports && ports[0]) {
-          ports[0].postMessage({ success: false, error: error.message });
-        }
-      });
-  }
-  
-  if (data.type === 'CHECK_UPDATE') {
-    self.registration.update()
-      .then(() => {
-        if (ports && ports[0]) {
-          ports[0].postMessage({ updateAvailable: true });
-        }
-      })
-      .catch(error => {
-        if (ports && ports[0]) {
-          ports[0].postMessage({ updateAvailable: false, error: error.message });
-        }
-      });
+    }
+    
+    if (data.type === 'GET_CACHE_INFO') {
+      caches.keys()
+        .then(cacheNames => {
+          const cacheInfo = cacheNames.map(name => ({ name, size: 'unknown' }));
+          if (ports && ports[0]) {
+            ports[0].postMessage({ caches: cacheInfo });
+          }
+        })
+        .catch(error => {
+          if (ports && ports[0]) {
+            ports[0].postMessage({ error: error.message });
+          }
+        });
+    }
+    
+    if (data.type === 'PRE_CACHE') {
+      const { urls } = data;
+      caches.open(DYNAMIC_CACHE)
+        .then(cache => {
+          const cachePromises = urls.map(url => {
+            // MODIFICA: Verifica che l'URL sia valido
+            if (!url.startsWith('http')) {
+              return Promise.resolve();
+            }
+            
+            return fetch(url)
+              .then(response => {
+                if (response.ok) {
+                  return cache.put(url, response);
+                }
+                return Promise.resolve();
+              })
+              .catch(() => Promise.resolve());
+          });
+          
+          return Promise.all(cachePromises);
+        })
+        .then(() => {
+          if (ports && ports[0]) {
+            ports[0].postMessage({ success: true });
+          }
+        })
+        .catch(error => {
+          if (ports && ports[0]) {
+            ports[0].postMessage({ success: false, error: error.message });
+          }
+        });
+    }
+    
+    if (data.type === 'CHECK_UPDATE') {
+      self.registration.update()
+        .then(() => {
+          if (ports && ports[0]) {
+            ports[0].postMessage({ updateAvailable: true });
+          }
+        })
+        .catch(error => {
+          if (ports && ports[0]) {
+            ports[0].postMessage({ updateAvailable: false, error: error.message });
+          }
+        });
+    }
   }
 });
 
@@ -437,6 +461,11 @@ async function updateCache() {
     
     const updatePromises = requests.map(async request => {
       try {
+        // MODIFICA: Verifica che l'URL sia valido
+        if (!request.url.startsWith('http')) {
+          return;
+        }
+        
         const response = await fetch(request);
         if (response.ok) {
           await cache.put(request, response);
@@ -461,3 +490,4 @@ self.addEventListener('error', event => {
 self.addEventListener('unhandledrejection', event => {
   console.error('[Service Worker] Promise non gestita:', event.reason);
 });
+[file content end]
