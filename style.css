@@ -16,17 +16,17 @@
     box-sizing: border-box;
 }
 html, body {
-    height: 100%; /* Fix altezza base */
-    overscroll-behavior-y: none; /* Rimuove effetto elastico/rimbalzo */
+    height: 100%;
+    overscroll-behavior-y: none; /* Evita il rimbalzo dell'intera pagina */
 }
 body {
     font-family: 'Inter', sans-serif;
     background: var(--background);
     color: var(--dark-text);
     line-height: 1.6;
-    min-height: 100vh; /* Fallback */
-    min-height: 100dvh; /* Altezza dinamica per mobile */
-    overflow-x: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden; /* Blocca lo scroll del body, usiamo quello di .screen */
     -webkit-tap-highlight-color: transparent;
     margin: 0;
     padding: 0;
@@ -47,7 +47,10 @@ body {
     height: 100%;
     opacity: 0;
     transition: opacity 0.3s ease;
-    overflow-y: auto; /* Permette scroll interno se necessario */
+    /* ABILITA SCORRIMENTO FLUIDO */
+    overflow-y: auto; 
+    -webkit-overflow-scrolling: touch; /* Fondamentale per inerzia su mobile */
+    scroll-behavior: smooth;
 }
 .screen.active {
     display: flex !important;
@@ -55,9 +58,8 @@ body {
     opacity: 1;
 }
 
-/* --- MODIFICA HOME PAGE: STABILIZZAZIONE --- */
+/* --- HOME PAGE STABILIZZATA --- */
 #home-screen {
-    /* Rimosso background diretto per evitare glitch */
     background: transparent;
     position: relative;
     display: flex;
@@ -66,13 +68,11 @@ body {
     align-items: center;
     padding: 30px 20px;
     flex: 1;
-    /* Forza l'altezza a quella del dispositivo, prevenendo scroll inutile */
-    height: 100vh; 
-    height: 100dvh;
-    overflow: hidden; 
+    height: 100%;
+    overflow-y: auto; /* Permette scroll se contenuto eccede */
+    -webkit-overflow-scrolling: touch;
 }
 
-/* Pseudo-elemento per sfondo fisso stabile */
 #home-screen::before {
     content: "";
     position: fixed;
@@ -86,10 +86,9 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    /* Questo rimuove il problema dello scorrimento dello sfondo */
     pointer-events: none;
 }
-/* ----------------------------------------- */
+/* ----------------------------- */
 
 .logo-container {
     margin-bottom: 25px;
@@ -427,11 +426,13 @@ body {
     font-size: 1rem;
     opacity: 0.9;
 }
+/* ABILITA SCORRIMENTO FLUIDO ANCHE QUI */
 .content-area {
     padding: 20px;
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 120px; 
+    padding-bottom: 120px;
+    -webkit-overflow-scrolling: touch;
 }
 .content-area::-webkit-scrollbar {
     width: 6px;
@@ -639,6 +640,7 @@ body {
     flex: 1;
     overflow-y: auto;
     padding-bottom: 140px;
+    -webkit-overflow-scrolling: touch; /* Momentum scrolling */
 }
 .detail-image {
     width: 100%;
