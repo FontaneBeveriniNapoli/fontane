@@ -2876,89 +2876,6 @@ function handleUrlParameters() {
     }
 }
 
-// Initialize App
-document.addEventListener('DOMContentLoaded', function() {
-    loadLocalData();
-    checkOnlineStatus();
-    showScreen('home-screen');
-    handleUrlParameters();
-    
-    // ✅ Inizializza gestione tasto indietro
-    setupBackButtonHandler();
-    
-    // ✅ Push stato iniziale per gestione back button
-    pushAppState();
-    
-    // ✅ Registra Service Worker (versione corretta)
-    if ('serviceWorker' in navigator) {
-        setTimeout(() => {
-            registerServiceWorker();
-        }, 1000);
-    }
-    
-    setTimeout(async () => {
-        try {
-            await loadFirebaseData('fontane');
-            await loadFirebaseData('beverini');
-            await loadFirebaseData('news');
-            
-            if (document.getElementById('fontane-list').innerHTML.includes('Caricamento')) {
-                loadFontane();
-            }
-            if (document.getElementById('beverini-list').innerHTML.includes('Caricamento')) {
-                loadBeverini();
-            }
-            if (document.getElementById('news-list').innerHTML.includes('Caricamento')) {
-                loadNews();
-            }
-            
-        } catch (error) {
-            showToast('Utilizzo dati locali', 'info');
-        }
-    }, 1000);
-    
-    document.getElementById('admin-password').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            checkAdminAuth();
-        }
-    });
-    
-    document.getElementById('admin-auth').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeAdminAuth();
-        }
-    });
-    
-    window.addEventListener('online', checkOnlineStatus);
-    window.addEventListener('offline', checkOnlineStatus);
-    
-    document.addEventListener('error', function(e) {
-        if (e.target.tagName === 'IMG') {
-            e.target.src = './images/sfondo-home.jpg';
-        }
-    }, true);
-    
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && document.getElementById('admin-panel').style.display === 'flex') {
-            closeAdminPanel();
-        }
-    });
-    
-    document.getElementById('admin-panel').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeAdminPanel();
-        }
-    });
-    
-    // Inizializza nuove funzionalità
-    initializeOfflineSync();
-    setTimeout(() => {
-        setupLazyLoading();
-    }, 1000);
-    
-    logActivity('Applicazione avviata');
-});
-
 // ============================================
 // ANALYTICS DASHBOARD FUNCTIONS
 // ============================================
@@ -3442,140 +3359,192 @@ function forceSyncAnalytics() {
 }
 
 // ============================================
-// GESTIONE TASTO INDIETRO ANDROID
+// GESTIONE TASTO INDIETRO ANDROID (CORRETTO)
 // ============================================
 
 // Gestione tasto indietro fisico/software
 function setupBackButtonHandler() {
-    // Supporto per browser mobile
-    if ('standalone' in navigator || window.matchMedia('(display-mode: standalone)').matches) {
-        // PWA installata
-        setupPwaBackNavigation();
-    } else {
-        // Browser normale
-        setupBrowserBackNavigation();
-    }
-}
+    // Unifichiamo la gestione: funziona sia per PWA che per Browser
+    // L'unica differenza è che nella PWA vogliamo "intrappolare" l'utente nell'app
+    // finché non è nella home.
+    
+    // 1. Inseriamo uno stato iniziale fittizio per attivare la history
+    window.history.pushState({ page: 'app_root' }, document.title, window.location.href);
 
-// Navigazione per PWA
-function setupPwaBackNavigation() {
-    let backButtonPressed = false;
-    
-    // Intercetta popstate (cambiamenti URL)
+    // 2. Ascoltiamo il cambiamento di stato (tasto indietro premuto)
     window.addEventListener('popstate', function(event) {
-        if (!backButtonPressed) {
-            // Previeni comportamento predefinito
-            event.preventDefault();
-            
-            // Gestisci navigazione personalizzata
-            handleBackNavigation();
-        }
-        backButtonPressed = false;
-    });
-    
-    // Aggiungi listener per hardware back button (Android)
-    document.addEventListener('backbutton', function(e) {
-        e.preventDefault();
-        backButtonPressed = true;
-        handleBackNavigation();
-    }, false);
-    
-    // Aggiungi supporto per gesture swipe (iOS)
-    let touchStartX = 0;
-    let touchStartY = 0;
-    
-    document.addEventListener('touchstart', function(e) {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
-    }, false);
-    
-    document.addEventListener('touchend', function(e) {
-        const touchEndX = e.changedTouches[0].screenX;
-        const touchEndY = e.changedTouches[0].screenY;
-        
-        // Se swipe da sinistra a destra (back gesture)
-        if (touchEndX - touchStartX > 100 && Math.abs(touchEndY - touchStartY) < 50) {
-            handleBackNavigation();
-        }
-    }, false);
-}
+        // Tentiamo di gestire la navigazione internamente
+        const actionTaken = handleBackNavigation();
 
-// Navigazione per browser
-function setupBrowserBackNavigation() {
-    let isBackButtonPressed = false;
-    
-    // Intercetta popstate
-    window.addEventListener('popstate', function(event) {
-        if (!isBackButtonPressed) {
-            // Gestisci navigazione personalizzata
-            handleBackNavigation();
-            
-            // Previeni comportamento predefinito del browser
-            event.preventDefault();
-            
-            // Reimposta stato
-            isBackButtonPressed = false;
+        if (actionTaken) {
+            // Se abbiamo gestito l'azione (es. chiuso un modale o cambiato schermata),
+            // dobbiamo RIPRISTINARE lo stato nella history, altrimenti al prossimo
+            // "back" l'app si chiuderà perché abbiamo consumato lo stato precedente.
+            window.history.pushState({ page: 'app_active' }, document.title, window.location.href);
+        } else {
+            // Se siamo nella Home e non ci sono modali aperti (actionTaken = false),
+            // lasciamo che l'evento popstate faccia il suo corso.
+            // In una PWA questo chiuderà l'app o la metterà in background.
+            // Se vogliamo chiedere conferma prima di uscire:
+             if (window.matchMedia('(display-mode: standalone)').matches) {
+                // Opzionale: Reinserisci lo stato se l'utente annulla l'uscita
+                // window.history.pushState({ page: 'app_root' }, ...);
+             }
         }
     });
-    
-    // Override del pulsante back del browser
-    window.history.pushState({ page: 'app' }, null, window.location.href);
-    window.onpopstate = function(event) {
-        if (event.state && event.state.page === 'app') {
-            handleBackNavigation();
-            // Mantieni l'app nello stesso stato
-            window.history.pushState({ page: 'app' }, null, window.location.href);
-        }
-    };
 }
 
-// Gestione logica del tasto indietro
+/**
+ * Gestisce la logica del tasto indietro.
+ * @returns {boolean} true se l'azione è stata gestita internamente (non uscire), false se si deve uscire.
+ */
 function handleBackNavigation() {
     console.log('Tasto indietro premuto - Stato navigazione:', screenHistory);
     
-    // Se siamo nella schermata di dettaglio
-    const currentScreen = screenHistory[screenHistory.length - 1];
-    if (currentScreen.includes('detail-screen')) {
-        goBack();
-        return;
+    // 1. Controllo Modali/Overlay (Priorità massima)
+    
+    // Auth Admin
+    const adminAuth = document.getElementById('admin-auth');
+    if (adminAuth && adminAuth.style.display === 'flex') {
+        closeAdminAuth();
+        return true;
+    }
+
+    // Pannello Admin
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel && adminPanel.style.display === 'flex') {
+        closeAdminPanel();
+        return true;
     }
     
-    // Se siamo nel pannello admin
-    if (document.getElementById('admin-panel').style.display === 'flex') {
-        if (document.getElementById('admin-auth').style.display === 'flex') {
-            closeAdminAuth();
-        } else {
-            closeAdminPanel();
-        }
-        return;
-    }
-    
-    // Se siamo nella modale di navigazione
-    if (document.getElementById('navigation-modal').style.display === 'flex') {
+    // Modale Navigazione
+    const navModal = document.getElementById('navigation-modal');
+    if (navModal && navModal.style.display === 'flex') {
         closeNavigationModal();
-        return;
+        return true;
     }
     
-    // Se siamo nella modale info
-    if (document.getElementById('info-modal').style.display === 'flex') {
+    // Modale Info
+    const infoModal = document.getElementById('info-modal');
+    if (infoModal && infoModal.style.display === 'flex') {
         closeInfoModal();
-        return;
+        return true;
     }
     
-    // Se non siamo nella home, torna indietro
+    // Modale Istruzioni Installazione (se presente)
+    const installModal = document.querySelector('.install-instructions');
+    if (installModal && installModal.style.display === 'flex') {
+        installModal.style.display = 'none'; // Assumendo che ci sia una funzione o stile per chiuderlo
+        return true;
+    }
+    
+    // Risultati ricerca mappa (se visibili)
+    const searchResults = document.getElementById('map-search-results');
+    if (searchResults && searchResults.style.display === 'block') {
+        searchResults.style.display = 'none';
+        return true;
+    }
+
+    // 2. Controllo Navigazione Schermate
+    
+    // Se siamo nella schermata di dettaglio, torniamo alla lista
+    const currentScreen = screenHistory[screenHistory.length - 1];
+    if (currentScreen && currentScreen.includes('detail-screen')) {
+        goBack();
+        return true;
+    }
+    
+    // Se non siamo nella home, torna indietro nella cronologia schermate
     if (currentScreen !== 'home-screen') {
         goBack();
-    } else {
-        // Se siamo già nella home, mostra conferma chiusura (solo su Android)
-        if (/Android/i.test(navigator.userAgent)) {
-            if (confirm('Premi OK per uscire dall\'app')) {
-                navigator.app && navigator.app.exitApp ? navigator.app.exitApp() : window.close();
-            }
-        }
-    }
+        return true;
+    } 
+
+    // 3. Siamo nella Home e nessun modale è aperto -> Uscita
+    return false;
 }
 
-// Funzione helper per gestire la navigazione
-function pushAppState() {
-    window.history.pushState({ page: 'app' }, null, window.location.href);
-}
+// ============================================
+// Initialize App (MODIFICATO)
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadLocalData();
+    checkOnlineStatus();
+    showScreen('home-screen');
+    handleUrlParameters();
+    
+    // ✅ Inizializza gestione tasto indietro (Nuova funzione corretta)
+    setupBackButtonHandler();
+    
+    // ✅ Rimuoviamo pushAppState() perché ora è gestita dentro setupBackButtonHandler
+    
+    // ✅ Registra Service Worker (versione corretta)
+    if ('serviceWorker' in navigator) {
+        setTimeout(() => {
+            registerServiceWorker();
+        }, 1000);
+    }
+    
+    setTimeout(async () => {
+        try {
+            await loadFirebaseData('fontane');
+            await loadFirebaseData('beverini');
+            await loadFirebaseData('news');
+            
+            if (document.getElementById('fontane-list').innerHTML.includes('Caricamento')) {
+                loadFontane();
+            }
+            if (document.getElementById('beverini-list').innerHTML.includes('Caricamento')) {
+                loadBeverini();
+            }
+            if (document.getElementById('news-list').innerHTML.includes('Caricamento')) {
+                loadNews();
+            }
+            
+        } catch (error) {
+            showToast('Utilizzo dati locali', 'info');
+        }
+    }, 1000);
+    
+    document.getElementById('admin-password').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            checkAdminAuth();
+        }
+    });
+    
+    document.getElementById('admin-auth').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAdminAuth();
+        }
+    });
+    
+    window.addEventListener('online', checkOnlineStatus);
+    window.addEventListener('offline', checkOnlineStatus);
+    
+    document.addEventListener('error', function(e) {
+        if (e.target.tagName === 'IMG') {
+            e.target.src = './images/sfondo-home.jpg';
+        }
+    }, true);
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('admin-panel').style.display === 'flex') {
+            closeAdminPanel();
+        }
+    });
+    
+    document.getElementById('admin-panel').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAdminPanel();
+        }
+    });
+    
+    // Inizializza nuove funzionalità
+    initializeOfflineSync();
+    setTimeout(() => {
+        setupLazyLoading();
+    }, 1000);
+    
+    logActivity('Applicazione avviata');
+});
