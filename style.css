@@ -48,8 +48,6 @@ body {
     flex-direction: column;
     opacity: 1;
 }
-
-/* --- MODIFICA HOME SCREEN FIX --- */
 #home-screen {
     background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
                 url('./images/sfondo-home.jpg');
@@ -62,15 +60,8 @@ body {
     align-items: center;
     padding: 30px 20px;
     flex: 1;
-    
-    /* FIX: Altezza fissa e dvh per evitare bouncing su mobile */
-    height: calc(100vh - 60px); 
-    height: calc(100dvh - 60px);
-    min-height: 0; /* Sovrascrive il min-height generico */
-    overflow: hidden; /* Impedisce lo scroll */
+    min-height: calc(100vh - 60px);
 }
-/* -------------------------------- */
-
 .logo-container {
     margin-bottom: 25px;
     text-align: left;
