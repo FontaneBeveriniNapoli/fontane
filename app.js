@@ -35,71 +35,6 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// Controlla stato Service Worker
-function checkServiceWorkerStatus() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistration()
-            .then(function(registration) {
-                if (registration) {
-                    console.log('Service Worker attivo:', registration.active ? 'Sì' : 'No');
-                    console.log('Scope:', registration.scope);
-                } else {
-                    console.log('Nessun Service Worker registrato');
-                }
-            });
-    }
-}
-
-// Forza aggiornamento Service Worker
-function forceServiceWorkerUpdate() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistration()
-            .then(function(registration) {
-                if (registration) {
-                    registration.update();
-                    showToast('Aggiornamento Service Worker forzato', 'info');
-                }
-            });
-    }
-}
-
-// Pulisci cache Service Worker (per sviluppo)
-function clearServiceWorkerCache() {
-    if ('serviceWorker' in navigator) {
-        caches.keys().then(function(cacheNames) {
-            cacheNames.forEach(function(cacheName) {
-                caches.delete(cacheName);
-                console.log('Cache eliminata:', cacheName);
-            });
-            showToast('Cache Service Worker pulita', 'info');
-        });
-        
-        // Deregistra Service Worker
-        navigator.serviceWorker.getRegistrations()
-            .then(function(registrations) {
-                registrations.forEach(function(registration) {
-                    registration.unregister();
-                    console.log('Service Worker deregistrato');
-                });
-            });
-    }
-}
-
-// Verifica supporto API
-function checkServiceWorkerSupport() {
-    const supports = {
-        serviceWorker: 'serviceWorker' in navigator,
-        sync: 'sync' in (navigator.serviceWorker || {}),
-        periodicSync: 'periodicSync' in (navigator.serviceWorker || {}),
-        push: 'PushManager' in window,
-        notification: 'Notification' in window,
-        cache: 'caches' in window
-    };
-    
-    console.log('Supporto API:', supports);
-    return supports;
-}
-
 // Firebase Collections
 const COLLECTIONS = {
     FONTANE: 'fontane',
@@ -773,7 +708,7 @@ let isAdminAuthenticated = false;
 let adminAuthTimeout = null;
 
 // ============================================
-// FUNZIONI ORIGINALI (MODIFICATE CON NUOVE FEATURES)
+// FUNZIONI ORIGINALI
 // ============================================
 
 // Firebase Firestore functions
@@ -1093,6 +1028,9 @@ function showScreen(screenId, skipHistory = false) {
             if (screenHistory.length > 10) {
                 screenHistory = screenHistory.slice(-10);
             }
+            
+            // ✅ SEMPRE aggiungi alla history del browser (tranne per la home iniziale)
+            history.pushState({ screen: screenId }, '', `#${screenId}`);
         }
         
         window.scrollTo(0, 0);
@@ -1101,11 +1039,6 @@ function showScreen(screenId, skipHistory = false) {
     
     updateTabBar(screenId);
     document.getElementById('fixed-navigate-btn').classList.add('hidden');
-    
-    // ✅ AGGIUNGI ALLA HISTORY DEL BROWSER (solo se non stiamo tornando indietro)
-    if (!skipHistory) {
-        history.pushState({ screen: screenId }, '', `#${screenId}`);
-    }
 }
 
 // ✅ FUNZIONE HELPER PER CHIUDERE MODALI
@@ -1130,17 +1063,77 @@ function closeAnyOpenModal() {
 function goBack() {
     // Prima chiudi eventuali modali
     if (closeAnyOpenModal()) {
+        return true; // Indica che abbiamo gestito l'azione
+    }
+    
+    // Se siamo alla home, non gestire (permetti all'app di uscire)
+    if (screenHistory.length <= 1) {
+        return false; // Non gestito - il sistema uscirà dall'app
+    }
+    
+    // Altrimenti, usa la history del browser
+    history.back();
+    return true; // Gestito
+}
+
+// ✅ LISTENER CENTRALE PER IL PULSANTE BACK
+// Questo è il cuore della soluzione
+window.addEventListener('popstate', function(event) {
+    // Se c'è un modale aperto, chiudilo
+    if (closeAnyOpenModal()) {
+        // IMPORTANTE: Riemetti uno stato nella history per prevenire l'uscita
+        if (event.state && event.state.screen) {
+            history.replaceState(event.state, '', `#${event.state.screen}`);
+        }
         return;
     }
     
-    // Poi gestisci la navigazione
-    if (screenHistory.length > 1) {
-        history.back(); // Triggera l'evento popstate
-    } else {
-        // Siamo alla home - lascia che il browser gestisca (uscita dall'app)
-        history.back();
+    // Se siamo alla home e premono back, lascia che l'app esca
+    if (screenHistory.length <= 1) {
+        return; // Non interferire
     }
-}
+    
+    // Determina quale schermata mostrare
+    let targetScreen = 'home-screen';
+    if (event.state && event.state.screen) {
+        targetScreen = event.state.screen;
+    }
+    
+    // Mostra la schermata SENZA aggiungerla alla history
+    showScreen(targetScreen, true);
+    
+    // Aggiorna screenHistory
+    if (screenHistory.length > 1) {
+        screenHistory.pop();
+    }
+});
+
+// ✅ PREVENZIONE USCITA ACCIDENTALE CON DOPPIO TAP
+let backButtonPressCount = 0;
+let backButtonTimer = null;
+
+// Aggiungi un listener per l'evento beforeunload solo per la home
+// Questo funziona meglio nelle PWA installate
+window.addEventListener('beforeunload', function(e) {
+    // Solo se siamo alla home screen
+    if (screenHistory.length <= 1) {
+        backButtonPressCount++;
+        if (backButtonPressCount === 1) {
+            backButtonTimer = setTimeout(() => {
+                backButtonPressCount = 0;
+            }, 2000);
+            e.preventDefault();
+            e.returnValue = '';
+            showToast('Premi di nuovo per uscire', 'warning', 2000);
+            return '';
+        } else {
+            clearTimeout(backButtonTimer);
+            backButtonPressCount = 0;
+            // Permetti l'uscita
+            return;
+        }
+    }
+});
 
 function updateTabBar(activeScreen) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -1343,7 +1336,7 @@ function renderGridItems(container, items, type) {
         const gridItem = document.createElement('div');
         gridItem.className = 'grid-item';
         gridItem.onclick = () => {
-            showDetail(item.id, type);
+            showDetail(item.id, type, false);
             currentLatLng = { lat: item.latitudine, lng: item.longitudine };
             document.getElementById('fixed-navigate-btn').classList.remove('hidden');
         };
@@ -1397,7 +1390,7 @@ function renderCompactItems(container, items, type) {
         }
 
         compactItem.onclick = () => {
-            showDetail(item.id, type);
+            showDetail(item.id, type, false);
             currentLatLng = { lat: item.latitudine, lng: item.longitudine };
             document.getElementById('fixed-navigate-btn').classList.remove('hidden');
         };
@@ -1613,7 +1606,7 @@ function createMarker(item, type) {
             <div class="popup-title">${item.nome}</div>
             <p>${item.indirizzo}</p>
             <p>Stato: ${getStatusText(item.stato)}</p>
-            <button class="popup-btn" onclick="showDetail('${item.id}', '${type}')">Dettagli</button>
+            <button class="popup-btn" onclick="showDetail('${item.id}', '${type}', false)">Dettagli</button>
             <button class="popup-btn" onclick="navigateTo(${item.latitudine}, ${item.longitudine})" style="margin-top: 5px; background: var(--primary-green);">Naviga</button>
         </div>
     `);
@@ -2849,575 +2842,11 @@ function handleUrlParameters() {
     const fontanaId = urlParams.get('fontana');
     const beverinoId = urlParams.get('beverino');
     if (fontanaId) {
-        showDetail(fontanaId, 'fontana', true); // ✅ TRUE per skipHistory
+        showDetail(fontanaId, 'fontana', true);
     } else if (beverinoId) {
-        showDetail(beverinoId, 'beverino', true); // ✅ TRUE per skipHistory
+        showDetail(beverinoId, 'beverino', true);
     }
 }
-
-// ============================================
-// ANALYTICS DASHBOARD FUNCTIONS
-// ============================================
-
-// Carica dashboard analytics
-function loadAnalyticsDashboard() {
-    if (!window.Analytics) {
-        console.warn('Analytics non inizializzato');
-        return;
-    }
-
-    // Aggiorna statistiche
-    updateAnalyticsStats();
-    
-    // Aggiorna tabelle
-    updateAnalyticsTables();
-    
-    // Aggiorna info sessione
-    updateSessionInfo();
-    
-    // Aggiorna stato storage
-    updateStorageInfo();
-    
-    // Aggiorna grafico
-    updateActivityChart();
-}
-
-// Aggiorna statistiche
-function updateAnalyticsStats() {
-    try {
-        const today = new Date().toDateString();
-        const allEvents = JSON.parse(localStorage.getItem('analytics_events') || '[]');
-        const allErrors = JSON.parse(localStorage.getItem('analytics_errors') || '[]');
-        
-        // Eventi di oggi
-        const todayEvents = allEvents.filter(event => 
-            new Date(event.timestamp).toDateString() === today
-        );
-        
-        // Sessioni di oggi (eventi di tipo SESSION_START)
-        const todaySessions = todayEvents.filter(event => event.type === 'SESSION_START');
-        
-        // Errori di oggi
-        const todayErrors = allErrors.filter(error => 
-            new Date(error.timestamp).toDateString() === today
-        );
-        
-        // Page views
-        const pageViews = todayEvents.filter(event => event.type === 'PAGE_VIEW').length;
-        
-        // Aggiorna UI
-        document.getElementById('analytics-session-count').textContent = todaySessions.length;
-        document.getElementById('analytics-events-count').textContent = todayEvents.length;
-        document.getElementById('analytics-pageviews-count').textContent = pageViews;
-        document.getElementById('analytics-errors-count').textContent = todayErrors.length;
-        
-    } catch (error) {
-        console.error('Errore aggiornamento stats:', error);
-    }
-}
-
-// Aggiorna tabelle
-function updateAnalyticsTables() {
-    updateErrorsTable();
-    updateEventsTable();
-}
-
-// Aggiorna tabella errori
-function updateErrorsTable() {
-    const errorsTable = document.getElementById('analytics-errors-table');
-    if (!errorsTable) return;
-    
-    const errors = JSON.parse(localStorage.getItem('analytics_errors') || '[]');
-    const recentErrors = errors.slice(0, 10); // Ultimi 10 errori
-    
-    errorsTable.innerHTML = recentErrors.map(error => {
-        const date = new Date(error.timestamp);
-        const timeString = date.toLocaleTimeString('it-IT', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-        const dateString = date.toLocaleDateString('it-IT');
-        
-        return `
-            <tr>
-                <td>${dateString} ${timeString}</td>
-                <td>${error.context || 'N/A'}</td>
-                <td title="${error.error?.message || 'N/A'}">
-                    ${(error.error?.message || 'N/A').substring(0, 50)}${(error.error?.message || '').length > 50 ? '...' : ''}
-                </td>
-                <td>
-                    <span class="item-status status-${error.severity || 'medium'}">
-                        ${error.severity || 'medium'}
-                    </span>
-                </td>
-            </tr>
-        `;
-    }).join('');
-    
-    if (recentErrors.length === 0) {
-        errorsTable.innerHTML = `
-            <tr>
-                <td colspan="4" style="text-align: center; padding: 20px; color: var(--light-text);">
-                    Nessun errore registrato
-                </td>
-            </tr>
-        `;
-    }
-}
-
-// Aggiorna tabella eventi
-function updateEventsTable() {
-    const eventsTable = document.getElementById('analytics-events-table');
-    if (!eventsTable) return;
-    
-    const events = JSON.parse(localStorage.getItem('analytics_events') || '[]');
-    
-    // Raggruppa eventi per categoria/azione
-    const eventCounts = {};
-    events.forEach(event => {
-        if (event.category && event.action) {
-            const key = `${event.category}.${event.action}`;
-            eventCounts[key] = eventCounts[key] || { count: 0, lastTime: null };
-            eventCounts[key].count++;
-            
-            const eventTime = new Date(event.timestamp);
-            if (!eventCounts[key].lastTime || eventTime > eventCounts[key].lastTime) {
-                eventCounts[key].lastTime = eventTime;
-            }
-        }
-    });
-    
-    // Converti in array e ordina
-    const eventArray = Object.entries(eventCounts)
-        .map(([key, data]) => {
-            const [category, action] = key.split('.');
-            return {
-                category,
-                action,
-                count: data.count,
-                lastTime: data.lastTime
-            };
-        })
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10); // Top 10
-    
-    eventsTable.innerHTML = eventArray.map(event => {
-        const lastTime = event.lastTime ? 
-            event.lastTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 
-            'N/A';
-        
-        return `
-            <tr>
-                <td>${event.category}</td>
-                <td>${event.action}</td>
-                <td>${event.count}</td>
-                <td>${lastTime}</td>
-            </tr>
-        `;
-    }).join('');
-    
-    if (eventArray.length === 0) {
-        eventsTable.innerHTML = `
-            <tr>
-                <td colspan="4" style="text-align: center; padding: 20px; color: var(--light-text);">
-                    Nessun evento registrato
-                </td>
-            </tr>
-        `;
-    }
-}
-
-// Aggiorna info sessione
-function updateSessionInfo() {
-    if (window.Analytics && window.Analytics.session) {
-        document.getElementById('current-session-id').textContent = 
-            window.Analytics.session.id.substring(0, 15) + '...';
-        
-        const statusIndicator = document.getElementById('analytics-status-indicator');
-        const statusText = document.getElementById('analytics-status-text');
-        
-        if (window.Analytics.config.trackingEnabled) {
-            statusIndicator.classList.remove('inactive');
-            statusIndicator.classList.add('active');
-            statusText.textContent = 'Analytics Attivo';
-            statusText.className = 'status-active';
-        } else {
-            statusIndicator.classList.remove('active');
-            statusIndicator.classList.add('inactive');
-            statusText.textContent = 'Analytics Disattivo';
-            statusText.className = 'status-inactive';
-        }
-    }
-}
-
-// Aggiorna info storage
-function updateStorageInfo() {
-    try {
-        // Calcola storage utilizzato
-        let totalSize = 0;
-        const analyticsKeys = [
-            'analytics_events',
-            'analytics_errors',
-            'analytics_pending',
-            'analytics_user_id',
-            'analytics_tracking_enabled'
-        ];
-        
-        analyticsKeys.forEach(key => {
-            const item = localStorage.getItem(key);
-            if (item) {
-                totalSize += new Blob([item]).size;
-            }
-        });
-        
-        // Converti in KB
-        const sizeKB = (totalSize / 1024).toFixed(2);
-        document.getElementById('storage-used').textContent = `${sizeKB} KB`;
-        
-        // Eventi pendenti
-        const pendingEvents = JSON.parse(localStorage.getItem('analytics_pending') || '[]');
-        document.getElementById('pending-events').textContent = pendingEvents.length;
-        
-        // Ultimo sync
-        const lastSync = localStorage.getItem('analytics_last_sync');
-        if (lastSync) {
-            const lastSyncDate = new Date(lastSync);
-            const now = new Date();
-            const diffMinutes = Math.floor((now - lastSyncDate) / (1000 * 60));
-            
-            if (diffMinutes < 1) {
-                document.getElementById('last-sync-time').textContent = 'Poco fa';
-            } else if (diffMinutes < 60) {
-                document.getElementById('last-sync-time').textContent = `${diffMinutes} minuti fa`;
-            } else {
-                document.getElementById('last-sync-time').textContent = 
-                    lastSyncDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-            }
-        }
-        
-    } catch (error) {
-        console.error('Errore calcolo storage:', error);
-    }
-}
-
-// Aggiorna grafico attività
-function updateActivityChart() {
-    const canvas = document.getElementById('activity-chart');
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // Dati di esempio per il grafico
-    const labels = [];
-    const data = [];
-    
-    // Genera dati per ultimi 7 giorni
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        labels.push(date.toLocaleDateString('it-IT', { weekday: 'short' }));
-        
-        // Valore casuale per demo (sostituire con dati reali)
-        data.push(Math.floor(Math.random() * 50) + 20);
-    }
-    
-    // Crea grafico
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Eventi',
-                data: data,
-                borderColor: 'rgb(59, 130, 246)',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    },
-                    ticks: {
-                        stepSize: 10
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
-            }
-        }
-    });
-}
-
-// Aggiorna metriche performance
-function updatePerformanceMetrics() {
-    const metrics = JSON.parse(localStorage.getItem('performance_metrics') || '[]');
-    
-    if (metrics.length > 0) {
-        // Calcola medie
-        const firstLoadMetrics = metrics.filter(m => m.name === 'app_start' || m.name.includes('first'));
-        const dataLoadMetrics = metrics.filter(m => m.name.includes('data_load') || m.name.includes('firebase'));
-        const imageLoadMetrics = metrics.filter(m => m.name.includes('image') || m.name.includes('load'));
-        
-        const avgFirstLoad = firstLoadMetrics.length > 0 ? 
-            firstLoadMetrics.reduce((sum, m) => sum + m.duration, 0) / firstLoadMetrics.length : 0;
-        
-        const avgDataLoad = dataLoadMetrics.length > 0 ? 
-            dataLoadMetrics.reduce((sum, m) => sum + m.duration, 0) / dataLoadMetrics.length : 0;
-        
-        const avgImageLoad = imageLoadMetrics.length > 0 ? 
-            imageLoadMetrics.reduce((sum, m) => m.value || m.duration, 0) / imageLoadMetrics.length : 0;
-        
-        // Aggiorna UI
-        document.getElementById('metric-first-load').textContent = `${Math.round(avgFirstLoad)}ms`;
-        document.getElementById('metric-data-load').textContent = `${Math.round(avgDataLoad)}ms`;
-        document.getElementById('metric-image-load').textContent = `${Math.round(avgImageLoad)}ms`;
-    }
-}
-
-// Funzioni azioni analytics
-function exportAnalyticsData() {
-    if (window.Analytics && window.Analytics.exportAnalyticsData) {
-        window.Analytics.exportAnalyticsData();
-        showToast('Dati analytics esportati', 'success');
-    } else {
-        // Fallback manuale
-        const allData = {
-            events: JSON.parse(localStorage.getItem('analytics_events') || '[]'),
-            errors: JSON.parse(localStorage.getItem('analytics_errors') || '[]'),
-            performance: JSON.parse(localStorage.getItem('performance_metrics') || '[]'),
-            timestamp: new Date().toISOString(),
-            user_id: localStorage.getItem('analytics_user_id')
-        };
-        
-        const dataStr = JSON.stringify(allData, null, 2);
-        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-        
-        const exportFileDefaultName = `analytics_export_${new Date().toISOString().split('T')[0]}.json`;
-        
-        const linkElement = document.createElement('a');
-        linkElement.setAttribute('href', dataUri);
-        linkElement.setAttribute('download', exportFileDefaultName);
-        linkElement.click();
-        
-        showToast('Dati analytics esportati', 'success');
-    }
-    
-    // Traccia l'evento
-    if (window.Analytics) {
-        window.Analytics.trackEvent('analytics', 'data_exported');
-    }
-}
-
-function refreshAnalyticsDashboard() {
-    loadAnalyticsDashboard();
-    updatePerformanceMetrics();
-    showToast('Dashboard analytics aggiornata', 'success');
-    
-    if (window.Analytics) {
-        window.Analytics.trackEvent('analytics', 'dashboard_refreshed');
-    }
-}
-
-function toggleAnalyticsTracking() {
-    if (window.Analytics) {
-        const newState = !window.Analytics.config.trackingEnabled;
-        window.Analytics.setTrackingEnabled(newState);
-        
-        showToast(`Analytics ${newState ? 'attivato' : 'disattivato'}`, 'info');
-        updateSessionInfo();
-        
-        window.Analytics.trackEvent('analytics', 'tracking_toggled', null, null, {
-            new_state: newState
-        });
-    }
-}
-
-function resetAnalyticsData() {
-    if (confirm('Sei sicuro di voler resettare tutti i dati analytics? Questa azione non può essere annullata.')) {
-        // Cancella tutti i dati analytics
-        const analyticsKeys = [
-            'analytics_events',
-            'analytics_errors',
-            'analytics_pending',
-            'analytics_last_sync',
-            'performance_metrics'
-        ];
-        
-        analyticsKeys.forEach(key => {
-            localStorage.removeItem(key);
-        });
-        
-        // Resetta user ID
-        localStorage.removeItem('analytics_user_id');
-        
-        // Re-inizializza analytics
-        if (window.Analytics) {
-            window.Analytics.user.id = window.Analytics.getUserId();
-            window.Analytics.session.id = window.Analytics.generateSessionId();
-            window.Analytics.session.startTime = Date.now();
-        }
-        
-        // Aggiorna dashboard
-        loadAnalyticsDashboard();
-        
-        showToast('Dati analytics resettati', 'success');
-        
-        if (window.Analytics) {
-            window.Analytics.trackEvent('analytics', 'data_reset');
-        }
-    }
-}
-
-function clearAnalyticsErrors() {
-    if (confirm('Cancellare tutti gli errori registrati?')) {
-        localStorage.removeItem('analytics_errors');
-        updateErrorsTable();
-        updateAnalyticsStats();
-        showToast('Errori cancellati', 'success');
-        
-        if (window.Analytics) {
-            window.Analytics.trackEvent('analytics', 'errors_cleared');
-        }
-    }
-}
-
-// Funzioni debug
-function testAnalyticsEvent() {
-    if (window.Analytics) {
-        window.Analytics.trackEvent('test', 'manual_event', 'Test manuale', 1, {
-            test_mode: true,
-            timestamp: new Date().toISOString()
-        });
-        showToast('Evento test registrato', 'info');
-    }
-}
-
-function testAnalyticsError() {
-    if (window.Analytics) {
-        const testError = new Error('Errore di test manuale');
-        testError.name = 'TestError';
-        testError.code = 'TEST_001';
-        
-        window.Analytics.trackError(testError, 'test_manual', 'low', {
-            test_mode: true
-        });
-        showToast('Errore test registrato', 'info');
-    }
-}
-
-function testPerformanceMetric() {
-    const loadTime = Math.random() * 1000 + 500; // Valore casuale 500-1500ms
-    logPerformanceMetric('test_manual_load', loadTime);
-    showToast(`Metrica test: ${Math.round(loadTime)}ms`, 'info');
-}
-
-function forceSyncAnalytics() {
-    if (window.Analytics && window.Analytics.flushQueue) {
-        window.Analytics.flushQueue(true);
-        localStorage.setItem('analytics_last_sync', new Date().toISOString());
-        updateStorageInfo();
-        showToast('Sync analytics forzato', 'info');
-    }
-}
-
-// ============================================
-// MODIFICA showAdminPanel PER INCLUDERE ANALYTICS
-// ============================================
-
-function showAdminPanel() {
-    document.getElementById('admin-panel').style.display = 'flex';
-    
-    // Carica dati standard
-    loadAdminFontane();
-    loadAdminBeverini();
-    loadAdminNews();
-    updateDashboardStats();
-    
-    // ✅ CARICA ANALYTICS DASHBOARD
-    loadAnalyticsDashboard();
-    updatePerformanceMetrics();
-    
-    const savedLog = localStorage.getItem('activityLog');
-    if (savedLog) {
-        activityLog = JSON.parse(savedLog);
-        updateActivityLog();
-    }
-}
-
-// ============================================
-// ✅ GESTIONE PULSANTE INDIETRO ANDROID (NUOVO)
-// ============================================
-
-// Listener per evento popstate (pulsante indietro browser/Android)
-window.addEventListener('popstate', function(event) {
-    // Prima chiudi eventuali modali
-    if (closeAnyOpenModal()) {
-        return;
-    }
-    
-    // Determina quale schermata mostrare
-    let targetScreen = 'home-screen';
-    if (event.state && event.state.screen) {
-        targetScreen = event.state.screen;
-    }
-    
-    // Mostra la schermata SENZA aggiungerla alla history (evita loop)
-    showScreen(targetScreen, true);
-    
-    // Aggiorna screenHistory per mantenerlo sincronizzato
-    if (screenHistory.length > 1 && !event.state) {
-        screenHistory.pop();
-    }
-});
-
-// ✅ PREVENZIONE USCITA ACCIDENTALE DALL'APP (DOPPIO TAP)
-let backButtonPressCount = 0;
-let backButtonTimer = null;
-
-window.addEventListener('beforeunload', function(e) {
-    // Se siamo in una schermata interna, preveni l'uscita
-    if (screenHistory.length > 1) {
-        e.preventDefault();
-        e.returnValue = '';
-        goBack();
-        return '';
-    }
-    
-    // Se siamo alla home, mostra conferma solo se l'utente preme due volte rapidamente
-    backButtonPressCount++;
-    if (backButtonPressCount === 1) {
-        backButtonTimer = setTimeout(() => {
-            backButtonPressCount = 0;
-        }, 2000);
-        
-        // Mostra toast invece di alert per UX migliore
-        showToast('Premi di nuovo per uscire', 'warning', 2000);
-        event.preventDefault();
-        return false;
-    } else {
-        clearTimeout(backButtonTimer);
-        backButtonPressCount = 0;
-        // Permetti l'uscita
-        return;
-    }
-});
 
 // ============================================
 // Inizializzazione App
@@ -3426,7 +2855,7 @@ window.addEventListener('beforeunload', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     loadLocalData();
     checkOnlineStatus();
-    showScreen('home-screen', true); // ✅ TRUE per skipHistory all'inizio
+    showScreen('home-screen', true);
     handleUrlParameters();
     
     setTimeout(async () => {
