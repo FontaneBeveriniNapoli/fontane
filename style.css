@@ -408,11 +408,12 @@ body {
     font-size: 1rem;
     opacity: 0.9;
 }
+/* MODIFICA: Aumentato padding-bottom per evitare che il contenuto sia coperto */
 .content-area {
     padding: 20px;
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 20px;
+    padding-bottom: 120px; 
 }
 .content-area::-webkit-scrollbar {
     width: 6px;
@@ -655,13 +656,19 @@ body {
     min-width: 100px;
     flex-shrink: 0;
 }
+/* MODIFICA: Aggiunto word-break per testo lungo */
 .info-value {
     color: var(--light-text);
     flex: 1;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    min-width: 0;
 }
+/* MODIFICA: Alzato pulsante navigazione */
 .fixed-navigate-btn {
     position: fixed;
-    bottom: 70px; /* Sopra la tab bar */
+    bottom: 90px;
     left: 50%;
     transform: translateX(-50%);
     background: var(--primary-blue);
@@ -1199,9 +1206,10 @@ body {
     background: #9ca3af;
     cursor: not-allowed;
 }
+/* MODIFICA: Alzato FAB admin */
 .admin-fab {
     position: fixed;
-    bottom: 80px;
+    bottom: 100px;
     right: 20px;
     width: 56px;
     height: 56px;
@@ -1262,9 +1270,10 @@ body {
     color: var(--dark-text);
     font-weight: 600;
 }
+/* MODIFICA: Alzato controlli mappa */
 .map-controls {
     position: absolute;
-    bottom: 80px;
+    bottom: 110px;
     left: 10px;
     z-index: 1000;
     display: flex;
@@ -2220,12 +2229,13 @@ body {
     
     .content-area {
         padding: 15px;
+        padding-bottom: 120px; /* Assicuriamo coerenza anche qui */
     }
 }
 
-/* Schermata news */
+/* MODIFICA: Aggiornato padding bottom per news */
 #news-screen .content-area {
-    padding-bottom: 80px; /* Spazio per tab bar */
+    padding-bottom: 120px;
 }
 
 /* Aggiunta: Stile per map-container */
