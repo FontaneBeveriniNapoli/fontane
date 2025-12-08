@@ -959,12 +959,12 @@ body {
 }
 
 /* ========================================================================= */
-/* MODIFICA LEGGENDA MAPPA */
+/* MODIFICA LEGGENDA MAPPA (POSIZIONATA A DESTRA) */
 .map-legend {
     position: absolute;
     top: 130px; /* Spostato sotto la barra di ricerca (che è a circa 80px) */
-    left: 10px; /* Spostato a sinistra */
-    right: auto;
+    right: 10px; /* Mantenuto a destra */
+    left: auto;
     background: rgba(255,255,255,0.7); /* Aumenta trasparenza al 70% */
     padding: 10px;
     border-radius: 10px;
@@ -2067,11 +2067,11 @@ body {
         height: 60px;
         font-size: 1.3rem;
     }
-    /* MODIFICA LEGGENDA MAPPA - DESKTOP */
+    /* MODIFICA LEGGENDA MAPPA - DESKTOP (POSIZIONATA A DESTRA) */
     .map-legend {
         top: 100px; /* Spostato sotto la barra di ricerca */
-        right: auto;
-        left: 30px; /* Spostato a sinistra */
+        right: 20px; /* Mantenuto a destra */
+        left: auto;
         padding: 15px;
         border-radius: 15px;
         max-width: 140px; /* 200px * 0.7 = 140px */
