@@ -3645,47 +3645,41 @@ function updateSplashProgress(increment) {
 function initializeAppAfterSplash() {
     console.log('🚀 App inizializzata dopo splash screen');
     
-    // Ritarda di poco per assicurare che DOMContentLoaded sia gestito e Firebase 
-    // abbia avuto un momento per tentare l'inizializzazione (vedi analytics.js)
-    setTimeout(() => {
-        
-        // Inizializza tutto qui...
-        if (typeof loadAllData === 'function') {
-            loadAllData();
-        }
-        
-        // Controlla se c'è un parametro admin nell'URL
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('admin') && urlParams.get('admin') === 'true') {
-            setTimeout(() => {
-                openAdminAuth();
-            }, 300);
-        }
-        
-        // Se ci sono altri parametri, gestiscili
-        if (urlParams.has('screen')) {
-            const screen = urlParams.get('screen');
-            setTimeout(() => {
-                showScreen(screen + '-screen');
-            }, 400);
-        }
-        
-        // Verifica installazione PWA (è già presente un listener, questo è ridondante ma innocuo)
-        window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('📱 PWA installabile rilevata');
-            e.preventDefault();
-            window.deferredPrompt = e;
-        });
+    // Contenuto corretto (senza setTimeout esterno)
+    if (typeof loadAllData === 'function') {
+        loadAllData();
+    }
+    
+    // Controlla se c'è un parametro admin nell'URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('admin') && urlParams.get('admin') === 'true') {
+        setTimeout(() => {
+            openAdminAuth();
+        }, 300);
+    }
+    
+    // Se ci sono altri parametri, gestiscili
+    if (urlParams.has('screen')) {
+        const screen = urlParams.get('screen');
+        setTimeout(() => {
+            showScreen(screen + '-screen');
+        }, 400);
+    }
+    
+    // Verifica installazione PWA
+    window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('📱 PWA installabile rilevata');
+        e.preventDefault();
+        window.deferredPrompt = e;
+    });
 
-        // Forza l'aggiornamento dell'ultima schermata attiva nel caso in cui fosse 'home-screen'
-        if (window.screenHistory && window.screenHistory[window.screenHistory.length - 1] === 'home-screen') {
-            document.getElementById('home-screen').style.display = 'flex';
-            setTimeout(() => {
-                document.getElementById('home-screen').classList.add('active');
-            }, 10);
-        }
-
-    }, 100); 
+    // Forza l'aggiornamento dell'ultima schermata attiva nel caso in cui fosse 'home-screen'
+    if (window.screenHistory && window.screenHistory[window.screenHistory.length - 1] === 'home-screen') {
+        document.getElementById('home-screen').style.display = 'flex';
+        setTimeout(() => {
+            document.getElementById('home-screen').classList.add('active');
+        }, 10);
+    }
 }
 
 // Gestione del caricamento della pagina
@@ -3709,14 +3703,14 @@ window.addEventListener('load', function() {
         }
     }, 100);
     
-    // Fallback: nascondi dopo 5 secondi massimo (MODIFICATO)
+    // Fallback: nascondi dopo 3 secondi massimo (RIPRISTINATO)
     setTimeout(() => {
         if (document.getElementById('splash-screen') && 
             !document.getElementById('splash-screen').classList.contains('hidden')) {
-            console.log('⏱️ Timeout splash screen (5s)');
+            console.log('⏱️ Timeout splash screen (3s)');
             hideSplashScreen();
         }
-    }, 5000);
+    }, 3000);
 });
 
 // Nascondi lo splash screen anche se c'è un errore di caricamento
