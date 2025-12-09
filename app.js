@@ -211,7 +211,7 @@ async function handleError(context, error, userMessage = null) {
         await handleGenericError(context, error);
     }
     
-    // Mostra messaggio all'utente
+    // Mostra messaggio all'utente (ora disattivato in showToast)
     if (userMessage) {
         showToast(userMessage, 'error', 5000);
     }
@@ -962,8 +962,15 @@ function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('it-IT', options);
 }
 
+// ======================================================
+// MODIFICA: Funzione showToast() con output visivo rimosso
+// ======================================================
 function showToast(message, type = 'info', duration = 3000) {
-    const toast = document.getElementById('toast');
+    // La logica per mostrare il toast è stata rimossa per disabilitare le notifiche visive.
+    // Manteniamo solo la registrazione in console per debug.
+    console.log(`[Toast Disabled] Tipo: ${type}, Messaggio: ${message}`);
+    
+    /* const toast = document.getElementById('toast');
     
     const typeConfig = {
         error: { background: 'var(--primary-red)', icon: 'fa-exclamation-triangle' },
@@ -980,8 +987,12 @@ function showToast(message, type = 'info', duration = 3000) {
     
     setTimeout(() => {
         toast.classList.remove('show');
-    }, duration);
+    }, duration); 
+    */
 }
+// ======================================================
+// FINE MODIFICA
+// ======================================================
 
 function logActivity(description) {
     const timestamp = new Date().toLocaleString('it-IT');
@@ -1009,13 +1020,6 @@ function updateActivityLog() {
         `;
         activityList.appendChild(activityItem);
     });
-}
-
-function clearActivityLog() {
-    activityLog = [];
-    localStorage.removeItem('activityLog');
-    updateActivityLog();
-    showToast('Log attività pulito', 'success');
 }
 
 function updateDashboardStats() {
@@ -3384,7 +3388,7 @@ function forceSyncAnalytics() {
         showToast('Sync analytics forzato', 'info');
     }
 }
-
+// Seconda parte nel blocco successivo
 // ============================================
 // GESTIONE TASTO INDIETRO ANDROID (CORRETTO)
 // ============================================
