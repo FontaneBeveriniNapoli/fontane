@@ -806,6 +806,11 @@ let searchMarker = null;
 let map = null;
 let clusterGroup = null;
 let markers = new Map();
+
+// Variabili per la gestione del doppio tocco/uscita
+let backPressTimer = null;
+const EXIT_TOAST_TIMEOUT = 2000; 
+
 let searchTimeout;
 let isAdminAuthenticated = false;
 let adminAuthTimeout = null;
@@ -3362,7 +3367,6 @@ function forceSyncAnalytics() {
         showToast('Sync analytics forzato', 'info');
     }
 }
-
 // ============================================
 // GESTIONE TASTO INDIETRO ANDROID (CORRETTO)
 // ============================================
@@ -3390,10 +3394,10 @@ function setupBackButtonHandler() {
             // Se siamo nella Home e non ci sono modali aperti (actionTaken = false),
             // lasciamo che l'evento popstate faccia il suo corso.
             // In una PWA questo chiuderà l'app o la metterà in background.
-            // Se vogliamo chiedere conferma prima di uscire:
              if (window.matchMedia('(display-mode: standalone)').matches) {
-                // Opzionale: Reinserisci lo stato se l'utente annulla l'uscita
-                // window.history.pushState({ page: 'app_root' }, ...);
+                // Se volessimo chiedere conferma/evitare l'uscita automatica,
+                // qui bisognerebbe re-iniettare uno stato, ma in questo caso 
+                // vogliamo permettere l'uscita dopo il doppio tocco.
              }
         }
     });
@@ -3452,12 +3456,7 @@ function handleBackNavigation() {
 
     // 2. Controllo Navigazione Schermate
     
-    // Se siamo nella schermata di dettaglio, torniamo alla lista
-    const currentScreen = screenHistory[screenHistory.length - 1];
-    if (currentScreen && currentScreen.includes('detail-screen')) {
-        goBack();
-        return true;
-    }
+    const currentScreen = screenHistory[screenHistory.length - 1]; 
     
     // Se non siamo nella home, torna indietro nella cronologia schermate
     if (currentScreen !== 'home-screen') {
@@ -3465,8 +3464,30 @@ function handleBackNavigation() {
         return true;
     } 
 
-    // 3. Siamo nella Home e nessun modale è aperto -> Uscita
-    return false;
+    // 3. Siamo nella Home e nessun modale è aperto -> Gestione Uscita (Doppio Tocco)
+    
+    if (backPressTimer) {
+        // Doppio tocco entro il timeout: Esegui l'uscita
+        clearTimeout(backPressTimer);
+        backPressTimer = null;
+        // Permetti al popstate handler di uscire (ritorna false)
+        showToast('Uscita dall\'applicazione...', 'info', 1000); 
+        return false; 
+    } else {
+        // Prima pressione: mostra toast di avviso e imposta il timer
+        showToast('Premi di nuovo per uscire', 'warning', EXIT_TOAST_TIMEOUT);
+        
+        backPressTimer = setTimeout(() => {
+            backPressTimer = null;
+            // Nascondi il toast se il timer scade.
+            const toast = document.getElementById('toast');
+            if (toast) toast.classList.remove('show');
+        }, EXIT_TOAST_TIMEOUT);
+        
+        // Dopo la prima pressione, re-inseriamo lo stato nella history
+        // per intercettare la seconda pressione senza uscire.
+        return true; // Azione gestita, non uscire ancora.
+    }
 }
 
 // ============================================
@@ -3809,3 +3830,4 @@ document.addEventListener('touchend', function(e) {
 });
 
 console.log('✨ Sistema splash screen inizializzato');
+}
