@@ -1104,46 +1104,6 @@ body {
     opacity: 1;
 }
 
-/* ===== TOAST PER DOPPIO CLIC SU HOME ===== */
-.exit-toast {
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 12px 20px;
-    border-radius: 25px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    z-index: 2000;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    backdrop-filter: blur(10px);
-    white-space: nowrap;
-}
-
-.exit-toast.show {
-    opacity: 1;
-}
-
-.exit-toast.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-/* Per schermi piccoli */
-@media (max-width: 375px) {
-    .exit-toast {
-        bottom: 80px;
-        font-size: 0.8rem;
-        padding: 10px 16px;
-    }
-}
-
 .offline-indicator {
     position: fixed;
     top: 10px;

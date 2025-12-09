@@ -1214,29 +1214,6 @@
             }
         }
         
-        // ✅ FUNZIONE PER CHIUDERE MODALI CON TASTO INDIETRO
-        function handleManualBack() {
-            // Controlla se ci sono modali aperti
-            const openModal = document.querySelector('.modal-overlay:not([style*="display: none"])') || 
-                             document.querySelector('.admin-panel-overlay:not([style*="display: none"])');
-            
-            if (openModal) {
-                // Chiudi prima il modale
-                closeAllModals();
-                return;
-            }
-            
-            // Altrimenti, naviga normalmente
-            if (navigationStack.length > 1) {
-                navigationStack.pop();
-                const prevScreen = navigationStack[navigationStack.length - 1];
-                navigateToScreen(prevScreen, false);
-                history.back();
-            } else {
-                handleHomeBackPress();
-            }
-        }
-        
         // Aggiorna automaticamente la dashboard quando si apre il tab
         document.querySelectorAll('.admin-tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {

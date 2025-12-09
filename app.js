@@ -810,10 +810,6 @@ let searchTimeout;
 let isAdminAuthenticated = false;
 let adminAuthTimeout = null;
 
-// Variabili per la gestione del doppio tocco/uscita
-let backPressTimer = null;
-const EXIT_TOAST_TIMEOUT = 2000; 
-
 // ============================================
 // FUNZIONI ORIGINALI (MODIFICATE CON NUOVE FEATURES)
 // ============================================
@@ -2197,7 +2193,7 @@ async function saveFontana(e) {
                     appData.fontane[index] = { id: savedId, ...fontanaData };
                 }
             } else {
-                appData.fontane.push({ id: savedId, ...fontanaData };
+                appData.fontane.push({ id: savedId, ...fontanaData });
             }
             
             showToast('Fontana salvata localmente. Sarà sincronizzata online dopo.', 'info');
@@ -2341,7 +2337,7 @@ async function saveBeverino(e) {
                     beverinoData
                 );
                 
-                appData.beverini.push({ id: savedId, ...beverinoData };
+                appData.beverini.push({ id: savedId, ...beverinoData });
                 showToast(`Beverino aggiunto con successo (ID: ${savedId})`, 'success');
             }
         } else {
@@ -2360,7 +2356,7 @@ async function saveBeverino(e) {
                     appData.beverini[index] = { id: savedId, ...beverinoData };
                 }
             } else {
-                appData.beverini.push({ id: savedId, ...beverinoData };
+                appData.beverini.push({ id: savedId, ...beverinoData });
             }
             
             showToast('Beverino salvato localmente. Sarà sincronizzato online dopo.', 'info');
@@ -2488,7 +2484,7 @@ async function saveNews(e) {
                     'news',
                     newsData
                 );
-                appData.news.push({ id: savedId, ...newsData };
+                appData.news.push({ id: savedId, ...newsData });
                 showToast(`News aggiunta con successo (ID: ${savedId})`, 'success');
             }
         } else {
@@ -2507,7 +2503,7 @@ async function saveNews(e) {
                     appData.news[index] = { id: savedId, ...newsData };
                 }
             } else {
-                appData.news.push({ id: savedId, ...newsData };
+                appData.news.push({ id: savedId, ...newsData });
             }
             
             showToast('News salvata localmente. Sarà sincronizzata online dopo.', 'info');
@@ -2767,7 +2763,7 @@ function importBeverini(data) {
     newBeverini.forEach(async (beverino) => {
         try {
             const id = await saveFirebaseData('beverini', beverino);
-            appData.beverini.push({ id, ...beverino };
+            appData.beverini.push({ id, ...beverino });
             importedCount++;
             
             if (importedCount === newBeverini.length) {
@@ -2799,7 +2795,7 @@ function importNews(data) {
     newNews.forEach(async (news) => {
         try {
             const id = await saveFirebaseData('news', news);
-            appData.news.push({ id, ...news };
+            appData.news.push({ id, ...news });
             importedCount++;
             
             if (importedCount === newNews.length) {
@@ -3146,7 +3142,7 @@ function updateActivityChart() {
     for (let i = 6; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
-        labels.push(date.toLocaleDateString('it-IT', { weekday: 'short' });
+        labels.push(date.toLocaleDateString('it-IT', { weekday: 'short' }));
         
         // Valore casuale per demo (sostituire con dati reali)
         data.push(Math.floor(Math.random() * 50) + 20);
@@ -3456,7 +3452,12 @@ function handleBackNavigation() {
 
     // 2. Controllo Navigazione Schermate
     
-    const currentScreen = screenHistory[screenHistory.length - 1]; 
+    // Se siamo nella schermata di dettaglio, torniamo alla lista
+    const currentScreen = screenHistory[screenHistory.length - 1];
+    if (currentScreen && currentScreen.includes('detail-screen')) {
+        goBack();
+        return true;
+    }
     
     // Se non siamo nella home, torna indietro nella cronologia schermate
     if (currentScreen !== 'home-screen') {
@@ -3464,30 +3465,8 @@ function handleBackNavigation() {
         return true;
     } 
 
-    // 3. Siamo nella Home e nessun modale è aperto -> Gestione Uscita (Doppio Tocco)
-    
-    if (backPressTimer) {
-        // Doppio tocco entro il timeout: Esegui l'uscita
-        clearTimeout(backPressTimer);
-        backPressTimer = null;
-        // Permetti al popstate handler di uscire (ritorna false)
-        showToast('Uscita dall\'applicazione...', 'info', 1000); 
-        return false; 
-    } else {
-        // Prima pressione: mostra toast di avviso e imposta il timer
-        showToast('Premi di nuovo per uscire', 'warning', EXIT_TOAST_TIMEOUT);
-        
-        backPressTimer = setTimeout(() => {
-            backPressTimer = null;
-            // Opzionale: Nascondi il toast se il timer scade.
-            const toast = document.getElementById('toast');
-            if (toast) toast.classList.remove('show');
-        }, EXIT_TOAST_TIMEOUT);
-        
-        // Dopo la prima pressione, re-inseriamo lo stato nella history
-        // per intercettare la seconda pressione senza uscire.
-        return true; // Azione gestita, non uscire ancora.
-    }
+    // 3. Siamo nella Home e nessun modale è aperto -> Uscita
+    return false;
 }
 
 // ============================================
