@@ -1445,11 +1445,12 @@ function renderCompactItems(container, items, type) {
         };
 
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
+        // MODIFICA: Utilizza './images/default-beverino.jpg' come fallback
         compactItem.innerHTML = `
-            <img src="${item.immagine || './images/sfondo-home.jpg'}"
+            <img src="${item.immagine || './images/default-beverino.jpg'}"
                  alt="${item.nome}"
                  class="compact-item-image"
-                 onerror="this.src='./images/sfondo-home.jpg'">
+                 onerror="this.src='./images/default-beverino.jpg'">
             <div class="compact-item-content">
                 <div class="compact-item-header">
                     <div class="compact-item-name">${item.nome}</div>
@@ -1536,8 +1537,11 @@ function generateDetailHTML(item, type) {
         `;
     }
     
+    // MODIFICA: Determina l'immagine di fallback condizionale
+    const fallbackImage = type === 'fontana' ? './images/sfondo-home.jpg' : './images/default-beverino.jpg';
+
     return `
-        <img src="${item.immagine || './images/sfondo-home.jpg'}" class="detail-image" alt="${item.nome}" onerror="this.src='./images/sfondo-home.jpg'">
+        <img src="${item.immagine || fallbackImage}" class="detail-image" alt="${item.nome}" onerror="this.src='${fallbackImage}'">
         <div class="detail-info">
             <div class="info-item">
                 <span class="info-label">${type === 'fontana' ? 'Indirizzo:' : 'Posizione:'}</span>
@@ -3563,7 +3567,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.addEventListener('error', function(e) {
         if (e.target.tagName === 'IMG') {
-            e.target.src = './images/sfondo-home.jpg';
+            // Logica di fallback generica, lasciamo che i singoli template di rendering
+            // gestiscano il loro specifico fallback tramite onerror se necessario.
+            // L'unico fallback hardcoded qui è stato rimosso in favore dei template.
+            // e.target.src = './images/sfondo-home.jpg';
         }
     }, true);
     

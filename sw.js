@@ -1,5 +1,4 @@
-[file content begin]
-const CACHE_NAME = 'fontane-beverini-v3.2.0';
+const CACHE_NAME = 'fontane-beverini-v3.2.1';
 const STATIC_CACHE = 'static-v2';
 const DYNAMIC_CACHE = 'dynamic-v2';
 
@@ -14,6 +13,7 @@ const STATIC_ASSETS = [
   './images/logo-app.png',
   './images/logo-comune.png',
   './images/sfondo-home.jpg',
+  './images/default-beverino.jpg', // <--- AGGIUNTA NUOVA IMMAGINE
   './images/icona-avvio-144.png',
   './images/icona-avvio-192.png',
   './images/icona-avvio-512.png',
@@ -203,8 +203,14 @@ self.addEventListener('fetch', event => {
               return caches.match('./index.html');
             }
             
-            // Return placeholder for images
+            // Return placeholder for images (usa il fallback specifico se non è la home, altrimenti il generico)
             if (event.request.destination === 'image') {
+              // Non possiamo distinguere tra fontana e beverino qui, quindi usiamo il generico
+              // a meno che l'URL non sia specificamente per l'immagine predefinita di un beverino che non è stata cachata
+              if (event.request.url.includes('default-beverino.jpg')) {
+                // Se l'immagine è il nuovo default e non è cachata, usiamo un fallback generico (sfondo-home.jpg)
+                return caches.match('./images/sfondo-home.jpg');
+              }
               return caches.match('./images/sfondo-home.jpg');
             }
 
@@ -490,4 +496,3 @@ self.addEventListener('error', event => {
 self.addEventListener('unhandledrejection', event => {
   console.error('[Service Worker] Promise non gestita:', event.reason);
 });
-[file content end]
