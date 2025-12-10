@@ -1606,7 +1606,7 @@ body {
 /* Alzato controlli mappa */
 .map-controls {
     position: absolute;
-    bottom: 110px;
+    bottom: 250px;
     left: 10px;
     z-index: 1000;
     display: flex;
