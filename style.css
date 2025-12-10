@@ -192,7 +192,6 @@ body {
     opacity: 1;
 }
 
-/* MODIFICHE QUI: Correzione spazio bianco e Aggiunta padding per safe-area */
 #home-screen {
     background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
                 url('./images/sfondo-home.jpg');
@@ -203,77 +202,10 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    
-    /* MODIFICA: Utilizza 100vh per coprire tutta la viewport e gestisci il padding */
-    min-height: 100vh; 
-    height: 100vh;
-    padding: 30px 20px 100px 20px; 
-    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
-    
+    padding: 30px 20px;
     flex: 1;
+    min-height: calc(100vh - 60px);
 }
-/* FINE MODIFICHE #home-screen */
-
-/* ===== STILE AGGIUNTIVO PER TESTO CON EFFETTO ACQUA NELLA HOME ===== */
-
-.water-effect-text {
-    color: #ffffff; /* Testo bianco */
-    font-size: 3rem; /* Dimensione grande per risaltare */
-    font-weight: 800;
-    text-align: center;
-    margin: 10px 0 20px 0; /* Spaziatura tra titolo e sottotitolo */
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), /* Bagliore base */
-                 0 0 20px rgba(173, 216, 230, 0.7); /* Bagliore azzurro chiaro */
-    animation: waterPulse 4s infinite ease-in-out alternate; /* Animazione principale */
-    letter-spacing: 2px;
-    opacity: 0.9;
-    position: relative; 
-    z-index: 5;
-}
-
-/* Animazione per simulare il movimento ondulatorio dell'acqua */
-@keyframes waterPulse {
-    0% {
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 
-                     0 0 25px rgba(173, 216, 230, 0.8),
-                     0 0 5px rgba(100, 149, 237, 0.4);
-        transform: scale(1);
-    }
-    50% {
-        text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 
-                     0 0 30px rgba(135, 206, 250, 0.9),
-                     0 0 8px rgba(30, 144, 255, 0.6);
-        transform: scale(1.02);
-    }
-    100% {
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 
-                     0 0 20px rgba(173, 216, 230, 0.7),
-                     0 0 3px rgba(100, 149, 237, 0.3);
-        transform: scale(1);
-    }
-}
-
-/* Responsive per schermi più grandi */
-@media (min-width: 1024px) {
-    .water-effect-text {
-        font-size: 4.5rem;
-        max-width: 600px;
-        margin: 20px auto 30px;
-    }
-    /* CORREZIONE SPAZIO BIANCO DESKTOP */
-    #home-screen {
-        padding-bottom: 120px; /* Altezza tab bar + spazio */
-    }
-}
-
-/* Responsive per schermi piccoli */
-@media (max-width: 380px) {
-    .water-effect-text {
-        font-size: 2.5rem;
-        margin: 5px 0 15px 0;
-    }
-}
-/* FINE STILE AGGIUNTIVO */
 
 .logo-container {
     margin-bottom: 25px;
@@ -2193,8 +2125,7 @@ body {
     }
     
     #home-screen {
-        min-height: 100vh; /* Rimosso calc per la correzione */
-        height: 100vh;
+        min-height: calc(100vh - 80px);
     }
     
     #map {
