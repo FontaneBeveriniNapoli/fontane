@@ -1533,7 +1533,23 @@ function showDetail(id, type) {
     document.getElementById('fixed-navigate-btn').classList.remove('hidden');
     showScreen(screenId);
     
-    // ✅ FORZA SCROLL ALL'INIZIO DOPO IL RENDER
+    
+// Funzione per reimpostare lo scroll
+function resetScroll() {
+    window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'instant'
+    });
+}
+
+// Reimposta lo scroll dopo il caricamento di ogni pagina
+document.addEventListener('DOMContentLoaded', () => {
+    resetScroll();
+});
+
+// ✅ FORZA SCROLL ALL'INIZIO DOPO IL RENDER
+
     setTimeout(() => {
         // Verifica che sia davvero una schermata di dettaglio
         if (screenHistory[screenHistory.length - 1].includes('detail')) {

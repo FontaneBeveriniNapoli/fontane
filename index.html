@@ -94,7 +94,35 @@
         console.log('Firebase inizializzato con Analytics');
     </script>
     <link rel="stylesheet" href="./style.css">
-</head>
+
+    <script>
+        // Reimposta lo scroll all'inizio della pagina al caricamento
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 100);
+        });
+        
+        // Gestione scroll per ancore (es. fontane)
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        const headerHeight = document.querySelector('header') ? document.querySelector('header').offsetHeight : 0;
+                        const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - headerHeight;
+                        window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+    </head>
 <body>
     <div id="splash-screen">
         <div class="splash-container">
