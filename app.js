@@ -1144,7 +1144,9 @@ function showScreen(screenId) {
             screenHistory = screenHistory.slice(-10);
         }
         
+        // CORREZIONE: Forza lo scroll all'inizio della pagina
         window.scrollTo(0, 0);
+        
         initializeScreenContent(screenId);
     }
     
@@ -3711,13 +3713,6 @@ function initializeAppAfterSplash() {
         }, 400);
     }
     
-    // Verifica installazione PWA
-    window.addEventListener('beforeinstallprompt', (e) => {
-        console.log('📱 PWA installabile rilevata');
-        e.preventDefault();
-        window.deferredPrompt = e;
-    });
-
     // Forza l'aggiornamento dell'ultima schermata attiva nel caso in cui fosse 'home-screen'
     if (window.screenHistory && window.screenHistory[window.screenHistory.length - 1] === 'home-screen') {
         document.getElementById('home-screen').style.display = 'flex';
