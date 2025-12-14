@@ -96,7 +96,7 @@
     <link rel="stylesheet" href="./style.css">
 
     <script>
-        // Rimosso: Reimposta lo scroll all'inizio della pagina al caricamento (gestito in app.js)
+        // La logica di reset scroll è stata spostata in app.js (resetScroll) e chiamata ad ogni cambio di schermata.
         
         // Gestione scroll per ancore (es. fontane) - Mantenuta per scroll interni ad hash
         document.addEventListener('DOMContentLoaded', () => {
@@ -570,7 +570,7 @@
                         <h4>Stato Sistema</h4>
                         <div class="analytics-status">
                             <div class="status-indicator" id="analytics-status-indicator">
-                                <i class="fas fa-circle"></i>
+                                <i class="fas fa-check-circle"></i>
                                 <span id="analytics-status-text">Analytics Attivo</span>
                             </div>
                             <div class="session-info">
@@ -1058,7 +1058,7 @@
             window.deferredPrompt = e;
         });
         
-        // ✅ FUNZIONI PER IL PANNELLO ANALYTICS
+        // ✅ FUNZIONI PER IL PANNELLO ANALYTICS (FUNZIONANO CON app.js)
         function refreshAnalyticsDashboard() {
             if (window.Analytics) {
                 const summary = window.Analytics.getAnalyticsSummary();
