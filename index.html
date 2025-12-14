@@ -96,14 +96,9 @@
     <link rel="stylesheet" href="./style.css">
 
     <script>
-        // Reimposta lo scroll all'inizio della pagina al caricamento
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                window.scrollTo(0, 0);
-            }, 100);
-        });
+        // Rimosso: Reimposta lo scroll all'inizio della pagina al caricamento (gestito in app.js)
         
-        // Gestione scroll per ancore (es. fontane)
+        // Gestione scroll per ancore (es. fontane) - Mantenuta per scroll interni ad hash
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {

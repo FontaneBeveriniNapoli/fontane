@@ -816,7 +816,7 @@ let isAdminAuthenticated = false;
 let adminAuthTimeout = null;
 
 // ============================================
-// NUOVA FUNZIONE CENTRALE PER RESET SCROLL
+// NUOVA FUNZIONE CENTRALE PER RESET SCROLL (Correzione scroll ovunque)
 // ============================================
 function resetScroll() {
     window.scrollTo({
@@ -825,7 +825,7 @@ function resetScroll() {
         behavior: 'instant'
     });
 }
-window.addEventListener('load', resetScroll);
+// Rimosso: window.addEventListener('load', resetScroll);
 
 
 // ============================================
@@ -1157,7 +1157,7 @@ function showScreen(screenId) {
             screenHistory = screenHistory.slice(-10);
         }
         
-        // CORREZIONE: Forza lo scroll all'inizio della pagina
+        // ✅ CORREZIONE FONDAMENTALE: Forza lo scroll all'inizio della pagina per tutte le schermate
         resetScroll();
         
         initializeScreenContent(screenId);
@@ -1195,6 +1195,10 @@ function goBack() {
             setTimeout(() => {
                 targetScreen.classList.add('active');
             }, 10);
+            
+            // ✅ CORREZIONE: Forza lo scroll anche quando si torna indietro
+            resetScroll();
+            
             initializeScreenContent(previousScreen);
         }
         updateTabBar(previousScreen);
@@ -1225,7 +1229,6 @@ function initializeScreenContent(screenId) {
             break;
     }
 }
-
 // Data Loading Functions
 async function loadFontane() {
     const fontaneList = document.getElementById('fontane-list');
@@ -1547,7 +1550,7 @@ function showDetail(id, type) {
     showScreen(screenId);
 }
 
-// ✅ MODIFICA C: generateDetailHTML con logica condizionale per nascondere la descrizione vuota
+// ✅ generateDetailHTML con logica condizionale per nascondere la descrizione vuota
 function generateDetailHTML(item, type) {
     let specificFields = '';
     if (type === 'fontana') {
@@ -1563,9 +1566,11 @@ function generateDetailHTML(item, type) {
     // ✅ LOGICA CONDIZIONALE: crea il blocco HTML solo se la descrizione non è vuota.
     const descriptionHTML = (item.descrizione && item.descrizione.trim())
         ? `
-            <div class="info-item">
-                <span class="info-label">Descrizione:</span>
-                <span class="info-value">${item.descrizione}</span>
+            <div class="detail-info">
+                <div class="info-item">
+                    <span class="info-label">Descrizione:</span>
+                    <span class="info-value">${item.descrizione}</span>
+                </div>
             </div>
         ` 
         : ''; // Se vuota, la riga non appare
@@ -1582,10 +1587,8 @@ function generateDetailHTML(item, type) {
                 <span class="info-value">${getStatusText(item.stato)}</span>
             </div>
             ${specificFields}
-            
-            ${descriptionHTML}
-            
         </div>
+        ${descriptionHTML}
         <div class="detail-actions">
             <button class="detail-action-btn primary" onclick="navigateTo(${item.latitudine}, ${item.longitudine})">
                 <i class="fas fa-map-marker-alt"></i> Naviga
@@ -3207,7 +3210,7 @@ function updateActivityChart() {
         date.setDate(date.getDate() - i);
         labels.push(date.toLocaleDateString('it-IT', { weekday: 'short' }));
         
-        // Valore casuale per demo (sostituire con dati reali)
+        // Valore casuale per demo
         data.push(Math.floor(Math.random() * 50) + 20);
     }
     
@@ -3559,8 +3562,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // ✅ Inizializza gestione tasto indietro (Nuova funzione corretta)
     setupBackButtonHandler();
-    
-    // ✅ Rimuoviamo pushAppState() perché ora è gestita dentro setupBackButtonHandler
     
     // ✅ Registra Service Worker (versione corretta)
     if ('serviceWorker' in navigator) {
