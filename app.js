@@ -356,8 +356,7 @@ function setupLazyLoading() {
                 const img = entry.target;
                 const src = img.getAttribute('data-src');
                 
-                // ✅ CORREZIONE: Controlla che img.src non sia già l'immagine corretta
-                if (src && img.src !== src) { 
+                if (src && !img.src.includes(src)) {
                     loadImageWithCache(img, src);
                 }
                 observer.unobserve(img);
@@ -381,12 +380,7 @@ function loadImageWithCache(imgElement, src) {
     }
     
     const img = new Image();
-    const startTime = performance.now(); // Inizio misurazione performance
-    
     img.onload = () => {
-        const duration = performance.now() - startTime;
-        logPerformanceMetric('image_load', duration); // Log performance
-        
         if (imageCache.size >= MAX_IMAGE_CACHE_SIZE) {
             const firstKey = imageCache.keys().next().value;
             imageCache.delete(firstKey);
@@ -396,13 +390,7 @@ function loadImageWithCache(imgElement, src) {
     };
     
     img.onerror = () => {
-        // Fallback più robusto
-        if (imgElement.classList.contains('compact-item-image')) {
-            imgElement.src = './images/default-beverino.jpg';
-        } else {
-            imgElement.src = './images/sfondo-home.jpg';
-        }
-        logErrorToAnalytics(new Error(`Image Load Failed: ${src}`), 'IMAGE_LOAD_ERROR', { url: src });
+        imgElement.src = './images/sfondo-home.jpg';
     };
     
     img.src = src;
@@ -1251,8 +1239,6 @@ async function loadFontane() {
     try {
         await loadFirebaseData('fontane');
         renderGridItems(fontaneList, getFilteredItems('fontane'), 'fontana');
-        // ✅ Applica lazy loading dopo il rendering
-        setupLazyLoading(); 
     } catch (error) {
         showToast('Errore nel caricamento fontane', 'error');
     }
@@ -1267,8 +1253,6 @@ async function loadBeverini() {
     try {
         await loadFirebaseData('beverini');
         renderCompactItems(beveriniList, getFilteredItems('beverini'), 'beverino');
-        // ✅ Applica lazy loading dopo il rendering
-        setupLazyLoading(); 
     } catch (error) {
         showToast('Errore nel caricamento beverini', 'error');
     }
@@ -1307,10 +1291,8 @@ function setFilter(type, stato) {
 
     if (type === 'fontane') {
         renderGridItems(document.getElementById('fontane-list'), getFilteredItems('fontane'), 'fontana');
-        setupLazyLoading(); // Ri-applica dopo il filtraggio
     } else if (type === 'beverini') {
         renderCompactItems(document.getElementById('beverini-list'), getFilteredItems('beverini'), 'beverino');
-        setupLazyLoading(); // Ri-applica dopo il filtraggio
     }
 }
 
@@ -1431,15 +1413,9 @@ function renderGridItems(container, items, type) {
         };
         
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
-        
-        // MODIFICATO: Usa data-src per lazy loading e fallback in src
         gridItem.innerHTML = `
             <div class="item-image-container">
-                <img src="./images/sfondo-home.jpg" 
-                     data-src="${item.immagine || './images/sfondo-home.jpg'}" 
-                     alt="${item.nome}" 
-                     class="item-image" 
-                     onerror="this.src='./images/sfondo-home.jpg'">
+                <img src="${item.immagine || './images/sfondo-home.jpg'}" alt="${item.nome}" class="item-image" onerror="this.src='./images/sfondo-home.jpg'">
             </div>
             <div class="item-content">
                 <div class="item-name">${item.nome}</div>
@@ -1491,11 +1467,9 @@ function renderCompactItems(container, items, type) {
         };
 
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
-        
-        // MODIFICATO: Usa data-src per lazy loading e fallback in src
+        // MODIFICA: Utilizza './images/default-beverino.jpg' come fallback
         compactItem.innerHTML = `
-            <img src="./images/default-beverino.jpg"
-                 data-src="${item.immagine || './images/default-beverino.jpg'}"
+            <img src="${item.immagine || './images/default-beverino.jpg'}"
                  alt="${item.nome}"
                  class="compact-item-image"
                  onerror="this.src='./images/default-beverino.jpg'">
@@ -3194,7 +3168,7 @@ function updateStorageInfo() {
         
         // Eventi pendenti
         const pendingEvents = JSON.parse(localStorage.getItem('analytics_pending') || '[]');
-        document.getElementById('pending-events-count').textContent = pendingEvents.length;
+        document.getElementById('pending-events').textContent = pendingEvents.length;
         
         // Ultimo sync
         const lastSync = localStorage.getItem('analytics_last_sync');
@@ -3303,8 +3277,7 @@ function updatePerformanceMetrics() {
             imageLoadMetrics.reduce((sum, m) => sum + m.value || m.duration, 0) / imageLoadMetrics.length : 0;
         
         // Aggiorna UI
-        // CORREZIONE: Gli ID 'metric-first-load' e 'metric-data-load' non esistono nel tuo index.html, uso quelli esistenti:
-        document.getElementById('metric-page-load').textContent = `${Math.round(avgFirstLoad)}ms`;
+        document.getElementById('metric-first-load').textContent = `${Math.round(avgFirstLoad)}ms`;
         document.getElementById('metric-data-load').textContent = `${Math.round(avgDataLoad)}ms`;
         document.getElementById('metric-image-load').textContent = `${Math.round(avgImageLoad)}ms`;
     }

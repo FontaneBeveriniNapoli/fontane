@@ -199,7 +199,7 @@ opacity: 0;
     opacity: 1;
 }
 
-/* ✅ CORREZIONE CSS: Altezza Home Screen (Risoluzione Scroll e sollevamento contenuto) */
+/* ✅ CORREZIONE CSS: Altezza Home Screen (Solo Tab Bar + Safe Area) */
 #home-screen {
     background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
                 url('./images/sfondo-home.jpg');
@@ -210,10 +210,9 @@ background-size: cover;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    /* MODIFICATO: Aumentato top padding a 55px per sollevare il contenuto */
-    padding: 55px 20px 30px 20px; 
+    padding: 30px 20px;
     flex: 1;
-    /* CORREZIONE FINALE: Altezza minima con safe area */
+    /* CORREZIONE FINALE: 60px Tab Bar + safe area per eliminare spazio bianco */
     min-height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px)); 
 }
 
@@ -1807,7 +1806,7 @@ color: #374151;
 
 .filter-btn.funzionante {
     background: #d1fae5;
-color: #065f46;
+    color: #065f46;
 }
 
 .filter-btn.non-funzionante {
