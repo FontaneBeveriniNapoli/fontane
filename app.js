@@ -1,13 +1,4 @@
 // ============================================
-// CONFIGURAZIONE GLOBALE (Aggiunta)
-// ============================================
-
-// Disabilita la gestione automatica del scroll del browser
-if ('scrollRestoration' in history) {
-    history.scrollRestoration = 'manual';
-}
-
-// ============================================
 // SERVICE WORKER FUNCTIONS - VERSIONE CORRETTA
 // ============================================
 
@@ -825,7 +816,7 @@ let isAdminAuthenticated = false;
 let adminAuthTimeout = null;
 
 // ============================================
-// NUOVA FUNZIONE CENTRALE PER RESET SCROLL (Correzione scroll ovunque)
+// NUOVA FUNZIONE CENTRALE PER RESET SCROLL
 // ============================================
 function resetScroll() {
     window.scrollTo({
@@ -834,7 +825,7 @@ function resetScroll() {
         behavior: 'instant'
     });
 }
-// Rimosso: window.addEventListener('load', resetScroll);
+window.addEventListener('load', resetScroll);
 
 
 // ============================================
@@ -1149,12 +1140,7 @@ function showScreen(screenId) {
     
     if (currentScreen === screenId) return;
     
-    // CORREZIONE 1: Forza scroll reset PRIMA di cambiare schermata
-    resetScroll();
-    
-    // CORREZIONE 2: Aggiungi classe per disabilitare scroll durante transizione
     document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.add('transitioning');
         screen.classList.remove('active');
         screen.style.display = 'none';
     });
@@ -1162,14 +1148,8 @@ function showScreen(screenId) {
     const targetScreen = document.getElementById(screenId);
     if (targetScreen) {
         targetScreen.style.display = 'flex';
-        
-        // Ritarda l'aggiunta della classe active per permettere il reset del scroll
         setTimeout(() => {
             targetScreen.classList.add('active');
-            targetScreen.classList.remove('transitioning');
-            
-            // Assicurati che lo scroll sia davvero a 0
-            window.scrollTo(0, 0);
         }, 10);
         
         screenHistory.push(screenId);
@@ -1177,8 +1157,12 @@ function showScreen(screenId) {
             screenHistory = screenHistory.slice(-10);
         }
         
+        // CORREZIONE: Forza lo scroll all'inizio della pagina
+        resetScroll();
+        
         initializeScreenContent(screenId);
     }
+    
     updateTabBar(screenId);
     
     // CORREZIONE: Nascondi sempre il pulsante di navigazione quando si cambia schermata
@@ -1197,15 +1181,11 @@ function goBack() {
     // CORREZIONE: Nascondi subito il pulsante di navigazione all'inizio di goBack
     document.getElementById('fixed-navigate-btn').classList.add('hidden');
     
-    // CORREZIONE: Reset scroll prima di tornare indietro
-    resetScroll();
-    
     if (screenHistory.length > 1) {
         screenHistory.pop();
         const previousScreen = screenHistory[screenHistory.length - 1];
         
         document.querySelectorAll('.screen').forEach(screen => {
-            screen.classList.add('transitioning');
             screen.classList.remove('active');
         });
         
@@ -1214,10 +1194,7 @@ function goBack() {
             targetScreen.style.display = 'block';
             setTimeout(() => {
                 targetScreen.classList.add('active');
-                targetScreen.classList.remove('transitioning');
-                window.scrollTo(0, 0);
             }, 10);
-            
             initializeScreenContent(previousScreen);
         }
         updateTabBar(previousScreen);
@@ -1248,6 +1225,7 @@ function initializeScreenContent(screenId) {
             break;
     }
 }
+
 // Data Loading Functions
 async function loadFontane() {
     const fontaneList = document.getElementById('fontane-list');
@@ -1569,7 +1547,7 @@ function showDetail(id, type) {
     showScreen(screenId);
 }
 
-// ✅ generateDetailHTML con logica condizionale per nascondere la descrizione vuota
+// ✅ MODIFICA C: generateDetailHTML con logica condizionale per nascondere la descrizione vuota
 function generateDetailHTML(item, type) {
     let specificFields = '';
     if (type === 'fontana') {
@@ -1585,11 +1563,9 @@ function generateDetailHTML(item, type) {
     // ✅ LOGICA CONDIZIONALE: crea il blocco HTML solo se la descrizione non è vuota.
     const descriptionHTML = (item.descrizione && item.descrizione.trim())
         ? `
-            <div class="detail-info">
-                <div class="info-item">
-                    <span class="info-label">Descrizione:</span>
-                    <span class="info-value">${item.descrizione}</span>
-                </div>
+            <div class="info-item">
+                <span class="info-label">Descrizione:</span>
+                <span class="info-value">${item.descrizione}</span>
             </div>
         ` 
         : ''; // Se vuota, la riga non appare
@@ -1606,8 +1582,10 @@ function generateDetailHTML(item, type) {
                 <span class="info-value">${getStatusText(item.stato)}</span>
             </div>
             ${specificFields}
+            
+            ${descriptionHTML}
+            
         </div>
-        ${descriptionHTML}
         <div class="detail-actions">
             <button class="detail-action-btn primary" onclick="navigateTo(${item.latitudine}, ${item.longitudine})">
                 <i class="fas fa-map-marker-alt"></i> Naviga
@@ -3229,7 +3207,7 @@ function updateActivityChart() {
         date.setDate(date.getDate() - i);
         labels.push(date.toLocaleDateString('it-IT', { weekday: 'short' }));
         
-        // Valore casuale per demo
+        // Valore casuale per demo (sostituire con dati reali)
         data.push(Math.floor(Math.random() * 50) + 20);
     }
     
@@ -3581,6 +3559,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // ✅ Inizializza gestione tasto indietro (Nuova funzione corretta)
     setupBackButtonHandler();
+    
+    // ✅ Rimuoviamo pushAppState() perché ora è gestita dentro setupBackButtonHandler
     
     // ✅ Registra Service Worker (versione corretta)
     if ('serviceWorker' in navigator) {

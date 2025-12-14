@@ -96,20 +96,14 @@
     <link rel="stylesheet" href="./style.css">
 
     <script>
-        // Blocca scroll durante il caricamento iniziale
-        document.documentElement.style.overflow = 'hidden';
-        document.body.style.overflow = 'hidden';
-        
-        window.addEventListener('load', function() {
-            // Riabilita scroll dopo il caricamento
+        // Reimposta lo scroll all'inizio della pagina al caricamento
+        window.addEventListener('load', () => {
             setTimeout(() => {
-                document.documentElement.style.overflow = '';
-                document.body.style.overflow = '';
                 window.scrollTo(0, 0);
             }, 100);
         });
-
-        // Gestione scroll per ancore (es. fontane) - Mantenuta per scroll interni ad hash
+        
+        // Gestione scroll per ancore (es. fontane)
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
