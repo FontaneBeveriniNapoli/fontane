@@ -181,16 +181,16 @@ height: 293px;
     flex-direction: column;
 }
 
-/* ✅ CORREZIONE CSS: Impedisce lo scroll sottraendo l'altezza della tab bar + header */
+/* Regola base per tutte le schermate */
 .screen {
-    display: none;
-flex: 1;
-    width: 100%;
-    position: relative;
-    /* 60px tab bar + 60px header/nav */
-    min-height: calc(100vh - 120px); 
-opacity: 0;
-    transition: opacity 0.3s ease;
+    display: none;
+    flex: 1;
+    width: 100%;
+    position: relative;
+    /* CORRETTO: Usa dvh per altezza dinamica con safe area */
+    min-height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px));
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .screen.active {
@@ -199,21 +199,23 @@ opacity: 0;
     opacity: 1;
 }
 
-/* ✅ CORREZIONE CSS: Altezza Home Screen (Solo Tab Bar + Safe Area) */
+/* Aggiungi questa regola per disabilitare scroll durante transizioni */
+.screen.transitioning {
+    overflow: hidden !important;
+}
+
+/* Home screen senza override di altezza */
 #home-screen {
-    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
-                url('./images/sfondo-home.jpg');
-background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 30px 20px;
-    flex: 1;
-    /* CORREZIONE FINALE: 60px Tab Bar + safe area per eliminare spazio bianco */
-    min-height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px)); 
+    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('./images/sfondo-home.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 30px 20px;
+    /* RIMUOVI: min-height override che causava lo spazio */
 }
 
 .logo-container {
@@ -2672,13 +2674,13 @@ font-size: 0.9rem;
 @media (max-width: 768px) {
     /* ✅ CORREZIONE CSS: Impedisce lo scroll sottraendo l'altezza della tab bar */
     .screen {
-        min-height: calc(100vh - 120px); 
+        min-height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px)); 
 }
     
     #home-screen {
         padding: 20px 15px;
         /* Ricalcola min-height per mobile */
-        min-height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px));
+        min-height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px));
     }
     
     .content-area {

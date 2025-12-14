@@ -1,4 +1,13 @@
 // ============================================
+// CONFIGURAZIONE GLOBALE (Aggiunta)
+// ============================================
+
+// Disabilita la gestione automatica del scroll del browser
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
+
+// ============================================
 // SERVICE WORKER FUNCTIONS - VERSIONE CORRETTA
 // ============================================
 
@@ -1140,7 +1149,12 @@ function showScreen(screenId) {
     
     if (currentScreen === screenId) return;
     
+    // CORREZIONE 1: Forza scroll reset PRIMA di cambiare schermata
+    resetScroll();
+    
+    // CORREZIONE 2: Aggiungi classe per disabilitare scroll durante transizione
     document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.add('transitioning');
         screen.classList.remove('active');
         screen.style.display = 'none';
     });
@@ -1148,8 +1162,14 @@ function showScreen(screenId) {
     const targetScreen = document.getElementById(screenId);
     if (targetScreen) {
         targetScreen.style.display = 'flex';
+        
+        // Ritarda l'aggiunta della classe active per permettere il reset del scroll
         setTimeout(() => {
             targetScreen.classList.add('active');
+            targetScreen.classList.remove('transitioning');
+            
+            // Assicurati che lo scroll sia davvero a 0
+            window.scrollTo(0, 0);
         }, 10);
         
         screenHistory.push(screenId);
@@ -1157,12 +1177,8 @@ function showScreen(screenId) {
             screenHistory = screenHistory.slice(-10);
         }
         
-        // ✅ CORREZIONE FONDAMENTALE: Forza lo scroll all'inizio della pagina per tutte le schermate
-        resetScroll();
-        
         initializeScreenContent(screenId);
     }
-    
     updateTabBar(screenId);
     
     // CORREZIONE: Nascondi sempre il pulsante di navigazione quando si cambia schermata
@@ -1181,11 +1197,15 @@ function goBack() {
     // CORREZIONE: Nascondi subito il pulsante di navigazione all'inizio di goBack
     document.getElementById('fixed-navigate-btn').classList.add('hidden');
     
+    // CORREZIONE: Reset scroll prima di tornare indietro
+    resetScroll();
+    
     if (screenHistory.length > 1) {
         screenHistory.pop();
         const previousScreen = screenHistory[screenHistory.length - 1];
         
         document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.add('transitioning');
             screen.classList.remove('active');
         });
         
@@ -1194,10 +1214,9 @@ function goBack() {
             targetScreen.style.display = 'block';
             setTimeout(() => {
                 targetScreen.classList.add('active');
+                targetScreen.classList.remove('transitioning');
+                window.scrollTo(0, 0);
             }, 10);
-            
-            // ✅ CORREZIONE: Forza lo scroll anche quando si torna indietro
-            resetScroll();
             
             initializeScreenContent(previousScreen);
         }
