@@ -1019,6 +1019,22 @@ function logActivity(description) {
     updateActivityLog();
 }
 
+function updateActivityLog() {
+    const activityList = document.getElementById('activity-list');
+    if (!activityList) return;
+    
+    activityList.innerHTML = '';
+    activityLog.forEach(activity => {
+        const activityItem = document.createElement('div');
+        activityItem.className = 'activity-item';
+        activityItem.innerHTML = `
+            <div class="activity-desc">${activity.description}</div>
+            <div class="activity-time">${activity.timestamp}</div>
+        `;
+        activityList.appendChild(activityItem);
+    });
+}
+
 function updateDashboardStats() {
     document.getElementById('total-fontane').textContent = appData.fontane.length;
     document.getElementById('fontane-funzionanti').textContent = appData.fontane.filter(f => f.stato === 'funzionante').length;
@@ -2306,7 +2322,7 @@ async function loadAdminBeverini() {
     });
 }
 
-// ✅ MODIFICA: editBeverino con caricamento campo descrizione
+// ✅ MODIFICA A: editBeverino con caricamento campo descrizione
 function editBeverino(id) {
     const beverino = appData.beverini.find(b => b.id == id);
     if (!beverino) return;
@@ -2326,7 +2342,7 @@ function editBeverino(id) {
     showAdminTab('beverini-admin');
 }
 
-// ✅ MODIFICA: saveBeverino con salvataggio campo descrizione e supporto offline
+// ✅ MODIFICA B: saveBeverino con salvataggio campo descrizione e supporto offline
 async function saveBeverino(e) {
     e.preventDefault();
     
@@ -3412,6 +3428,7 @@ function forceSyncAnalytics() {
         showToast('Sync analytics forzato', 'info');
     }
 }
+// Seconda parte nel blocco successivo
 // ============================================
 // GESTIONE TASTO INDIETRO ANDROID (CORRETTO)
 // ============================================
