@@ -1518,12 +1518,20 @@ function showDetail(id, type) {
     titleElement.textContent = item.nome;
     contentElement.innerHTML = generateDetailHTML(item, type);
     
-    // ✅ MODIFICA QUI: Forza lo scroll in alto quando si apre il dettaglio
-    contentElement.scrollTop = 0; 
-    
     currentLatLng = { lat: item.latitudine, lng: item.longitudine };
     document.getElementById('fixed-navigate-btn').classList.remove('hidden');
     showScreen(screenId);
+
+    // ✅ MODIFICA QUI: Forza lo scroll in alto quando si apre il dettaglio
+    // Eseguiamo dopo che la schermata è visibile per garantire che funzioni
+    setTimeout(() => {
+        contentElement.scrollTop = 0;
+    }, 10);
+
+    // Backup per dispositivi più lenti
+    setTimeout(() => {
+        contentElement.scrollTop = 0;
+    }, 100);
 }
 
 // ✅ generateDetailHTML con logica condizionale per nascondere la descrizione vuota
