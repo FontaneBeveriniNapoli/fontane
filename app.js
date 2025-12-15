@@ -670,31 +670,7 @@ async function checkForPendingSync() {
 
 // Aggiorna UI sync
 function updateSyncUI() {
-    // MODIFICA: Abbiamo disabilitato la creazione dell'indicatore visivo
     return;
-
-    /* CODICE ORIGINALE COMMENTATO:
-    let syncIndicator = document.getElementById('sync-indicator');
-    
-    if (!syncIndicator) {
-        syncIndicator = document.createElement('div');
-        syncIndicator.id = 'sync-indicator';
-        syncIndicator.className = 'sync-indicator';
-        syncIndicator.innerHTML = '<i class="fas fa-sync-alt"></i>';
-        document.body.appendChild(syncIndicator);
-    }
-    
-    if (syncState.isSyncing) {
-        syncIndicator.classList.add('syncing');
-        syncIndicator.title = 'Sincronizzazione in corso...';
-    } else if (syncState.pendingChanges > 0) {
-        syncIndicator.classList.add('pending');
-        syncIndicator.title = `${syncState.pendingChanges} modifiche in attesa`;
-    } else {
-        syncIndicator.classList.remove('syncing', 'pending');
-        syncIndicator.title = 'Tutto sincronizzato';
-    }
-    */
 }
 
 // Salva stato sync
@@ -816,13 +792,24 @@ let isAdminAuthenticated = false;
 let adminAuthTimeout = null;
 
 // ============================================
-// NUOVA FUNZIONE CENTRALE PER RESET SCROLL (Correzione scroll ovunque)
+// NUOVA FUNZIONE CENTRALE PER RESET SCROLL (AGGIORNATA)
 // ============================================
 function resetScroll() {
+    // 1. Resetta lo scroll della finestra principale
     window.scrollTo({
         top: 0,
         left: 0,
         behavior: 'instant'
+    });
+
+    // 2. Resetta lo scroll delle aree di lista (Fontane/Beverini/News list)
+    document.querySelectorAll('.content-area').forEach(area => {
+        area.scrollTop = 0;
+    });
+
+    // 3. Resetta lo scroll delle schede dettaglio (dove c'è l'immagine)
+    document.querySelectorAll('.detail-content').forEach(detail => {
+        detail.scrollTop = 0;
     });
 }
 // Rimosso: window.addEventListener('load', resetScroll);
@@ -979,29 +966,7 @@ function formatDate(dateString) {
 // MODIFICA: Funzione showToast() con output visivo rimosso
 // ======================================================
 function showToast(message, type = 'info', duration = 3000) {
-    // La logica per mostrare il toast è stata rimossa per disabilitare le notifiche visive.
-    // Manteniamo solo la registrazione in console per debug.
     console.log(`[Toast Disabled] Tipo: ${type}, Messaggio: ${message}`);
-    
-    /* const toast = document.getElementById('toast');
-    
-    const typeConfig = {
-        error: { background: 'var(--primary-red)', icon: 'fa-exclamation-triangle' },
-        success: { background: 'var(--primary-green)', icon: 'fa-check-circle' },
-        info: { background: 'var(--primary-blue)', icon: 'fa-info-circle' },
-        warning: { background: 'var(--primary-orange)', icon: 'fa-exclamation-circle' }
-    };
-    
-    const config = typeConfig[type] || typeConfig.info;
-    
-    toast.innerHTML = `<i class="fas ${config.icon}"></i> ${message}`;
-    toast.style.background = config.background;
-    toast.classList.add('show');
-    
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, duration); 
-    */
 }
 // ======================================================
 // FINE MODIFICA
@@ -1389,7 +1354,6 @@ function showSkeletonLoaderCompact(container, count = 6) {
         container.appendChild(skeletonItem);
     }
 }
-
 function renderGridItems(container, items, type) {
     if (!items || items.length === 0) {
         container.innerHTML = `
@@ -1413,9 +1377,14 @@ function renderGridItems(container, items, type) {
         };
         
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
+        
+        // MODIFICA QUI: Contenitore immagine robusto con fallback visivo
         gridItem.innerHTML = `
             <div class="item-image-container">
-                <img src="${item.immagine || './images/sfondo-home.jpg'}" alt="${item.nome}" class="item-image" onerror="this.src='./images/sfondo-home.jpg'">
+                <img src="${item.immagine || './images/sfondo-home.jpg'}" 
+                     alt="${item.nome}" 
+                     class="item-image" 
+                     onerror="this.style.display='none'; this.parentElement.classList.add('fallback-active'); this.parentElement.innerHTML += '<div class=\\'image-fallback\\'><i class=\\'fas fa-image\\'></i></div>';">
             </div>
             <div class="item-content">
                 <div class="item-name">${item.nome}</div>
@@ -1467,12 +1436,15 @@ function renderCompactItems(container, items, type) {
         };
 
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
-        // MODIFICA: Utilizza './images/default-beverino.jpg' come fallback
+        
+        // MODIFICA QUI: Struttura con contenitore immagine sicuro
         compactItem.innerHTML = `
-            <img src="${item.immagine || './images/default-beverino.jpg'}"
-                 alt="${item.nome}"
-                 class="compact-item-image"
-                 onerror="this.src='./images/default-beverino.jpg'">
+            <div class="compact-item-image-container">
+                <img src="${item.immagine || './images/default-beverino.jpg'}"
+                     alt="${item.nome}"
+                     class="compact-item-image"
+                     onerror="this.style.display='none'; this.parentElement.classList.add('fallback-active'); this.parentElement.innerHTML += '<div class=\\'compact-image-fallback\\'><i class=\\'fas fa-faucet\\'></i></div>';">
+            </div>
             <div class="compact-item-content">
                 <div class="compact-item-header">
                     <div class="compact-item-name">${item.nome}</div>
@@ -1545,6 +1517,10 @@ function showDetail(id, type) {
     
     titleElement.textContent = item.nome;
     contentElement.innerHTML = generateDetailHTML(item, type);
+    
+    // ✅ MODIFICA QUI: Forza lo scroll in alto quando si apre il dettaglio
+    contentElement.scrollTop = 0; 
+    
     currentLatLng = { lat: item.latitudine, lng: item.longitudine };
     document.getElementById('fixed-navigate-btn').classList.remove('hidden');
     showScreen(screenId);

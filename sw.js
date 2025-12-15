@@ -1,5 +1,5 @@
-const CACHE_NAME = 'fontane-beverini-v3.6.1';
-const STATIC_CACHE = 'static-v2';
+const CACHE_NAME = 'fontane-beverini-v3.7.0'; // VERSIONE AGGIORNATA
+const STATIC_CACHE = 'static-v3';
 const DYNAMIC_CACHE = 'dynamic-v2';
 
 const STATIC_ASSETS = [
@@ -13,7 +13,7 @@ const STATIC_ASSETS = [
   './images/logo-app.png',
   './images/logo-comune.png',
   './images/sfondo-home.jpg',
-  './images/default-beverino.jpg', // <--- AGGIUNTA NUOVA IMMAGINE
+  './images/default-beverino.jpg',
   './images/icona-avvio-144.png',
   './images/icona-avvio-192.png',
   './images/icona-avvio-512.png',
@@ -36,7 +36,7 @@ const EXTERNAL_ASSETS = [
   'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png'
 ];
 
-// Install Service Worker - VERSIONE CORRETTA PER GITHUB PAGES
+// Install Service Worker
 self.addEventListener('install', event => {
   console.log('[Service Worker] Installazione in corso...');
   
@@ -44,7 +44,6 @@ self.addEventListener('install', event => {
     caches.open(STATIC_CACHE)
       .then(cache => {
         console.log('[Service Worker] Cache asset statici');
-        // Cache solo i file che esistono realmente, gestendo errori singolarmente
         const cachePromises = STATIC_ASSETS.map(url => {
           return fetch(url, { mode: 'no-cors' })
             .then(response => {
@@ -56,7 +55,7 @@ self.addEventListener('install', event => {
             })
             .catch(error => {
               console.warn(`[Service Worker] Errore caching ${url}:`, error.message);
-              return Promise.resolve(); // Non bloccare l'installazione
+              return Promise.resolve(); 
             });
         });
         
@@ -68,7 +67,7 @@ self.addEventListener('install', event => {
       })
       .catch(error => {
         console.error('[Service Worker] Errore installazione:', error);
-        return self.skipWaiting(); // IMPORTANTE: Salta comunque l'attesa
+        return self.skipWaiting(); 
       })
   );
 });
@@ -81,6 +80,7 @@ self.addEventListener('activate', event => {
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
+          // Pulisce le vecchie versioni (es. v3.6.1)
           if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
             console.log('[Service Worker] Cancellazione vecchia cache:', cacheName);
             return caches.delete(cacheName);
@@ -98,14 +98,12 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch Strategy: Cache First with Network Fallback - VERSIONE CORRETTA
+// Fetch Strategy
 self.addEventListener('fetch', event => {
-  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
   
   const url = new URL(event.request.url);
   
-  // MODIFICA: Ignora URL con schemi non supportati (chrome-extension://, chrome://, etc.)
   if (url.protocol === 'chrome-extension:' || 
       url.protocol === 'chrome:' || 
       url.protocol === 'about:' ||
@@ -115,7 +113,6 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // Skip external API calls
   if (url.href.includes('firebase') ||
       url.href.includes('nominatim') ||
       url.href.includes('gstatic.com') ||
@@ -125,15 +122,12 @@ self.addEventListener('fetch', event => {
     return fetch(event.request);
   }
   
-  // Special handling for OSM tiles
   if (url.href.includes('tile.openstreetmap.org') || 
       url.href.includes('cdn.rawgit.com')) {
     event.respondWith(
       caches.match(event.request)
         .then(cachedResponse => {
-          // Return cached if available
           if (cachedResponse) {
-            // Update cache in background
             fetch(event.request)
               .then(response => {
                 if (response.ok) {
@@ -141,11 +135,10 @@ self.addEventListener('fetch', event => {
                     .then(cache => cache.put(event.request, response));
                 }
               })
-              .catch(() => {}); // Ignore errors
+              .catch(() => {}); 
             return cachedResponse;
           }
           
-          // Otherwise fetch and cache
           return fetch(event.request)
             .then(response => {
               if (response.ok) {
@@ -160,21 +153,16 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // Per GitHub Pages, gestisci le richieste in modo più robusto
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {
-        // If cached, return it
         if (cachedResponse) {
           return cachedResponse;
         }
         
-        // Otherwise fetch from network
         return fetch(event.request)
           .then(response => {
-            // Don't cache error responses
             if (!response.ok) {
-              // Se la richiesta fallisce e stiamo cercando index.html, serviamo una versione offline
               if (event.request.url.includes('index.html') || 
                   event.request.headers.get('accept')?.includes('text/html')) {
                 return caches.match('./index.html');
@@ -182,11 +170,9 @@ self.addEventListener('fetch', event => {
               return response;
             }
             
-            // Clone and cache successful responses
             const responseToCache = response.clone();
             caches.open(DYNAMIC_CACHE)
               .then(cache => {
-                // MODIFICA: Verifica ulteriore che l'URL sia valido per il caching
                 if (event.request.url.startsWith('http')) {
                   return cache.put(event.request, responseToCache);
                 }
@@ -198,30 +184,23 @@ self.addEventListener('fetch', event => {
           .catch(error => {
             console.warn('[Service Worker] Fetch fallback:', error.message);
             
-            // Return offline page for HTML requests
             if (event.request.headers.get('accept')?.includes('text/html')) {
               return caches.match('./index.html');
             }
             
-            // Return placeholder for images (usa il fallback specifico se non è la home, altrimenti il generico)
             if (event.request.destination === 'image') {
-              // Non possiamo distinguere tra fontana e beverino qui, quindi usiamo il generico
-              // a meno che l'URL non sia specificamente per l'immagine predefinita di un beverino che non è stata cachata
               if (event.request.url.includes('default-beverino.jpg')) {
-                // Se l'immagine è il nuovo default e non è cachata, usiamo un fallback generico (sfondo-home.jpg)
                 return caches.match('./images/sfondo-home.jpg');
               }
               return caches.match('./images/sfondo-home.jpg');
             }
 
-            // MODIFICA: Per evitare SyntaxError sugli script
             if (event.request.destination === 'script') {
                  return new Response('/* Offline script placeholder */', {
                     headers: { 'Content-Type': 'application/javascript' }
                  });
             }
             
-            // Return offline message for other requests
             return new Response('Modalità offline attiva. Riprova quando la connessione sarà disponibile.', {
               status: 503,
               headers: { 'Content-Type': 'text/plain; charset=utf-8' }
@@ -231,7 +210,7 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// Background Sync for offline data
+// Background Sync
 self.addEventListener('sync', event => {
   console.log('[Service Worker] Sync event:', event.tag);
   
@@ -239,7 +218,7 @@ self.addEventListener('sync', event => {
     event.waitUntil(
       syncOfflineData().catch(error => {
         console.error('[Service Worker] Sync error:', error);
-        return Promise.resolve(); // Always resolve to avoid retries
+        return Promise.resolve();
       })
     );
   }
@@ -249,7 +228,6 @@ async function syncOfflineData() {
   console.log('[Service Worker] Tentativo sincronizzazione dati offline...');
   
   try {
-    // Notify all clients to sync their offline data
     const clients = await self.clients.matchAll();
     
     if (clients.length === 0) {
@@ -257,7 +235,6 @@ async function syncOfflineData() {
       return Promise.resolve();
     }
     
-    // Send sync message to all clients
     const syncPromises = clients.map(client => {
       return client.postMessage({
         type: 'SYNC_OFFLINE_DATA',
@@ -271,14 +248,12 @@ async function syncOfflineData() {
     return Promise.resolve();
   } catch (error) {
     console.error('[Service Worker] Errore durante sync:', error);
-    return Promise.resolve(); // Always resolve
+    return Promise.resolve();
   }
 }
 
-// Handle messages from the app
+// Handle messages
 self.addEventListener('message', event => {
-  console.log('[Service Worker] Messaggio ricevuto:', event.data?.type);
-  
   const { data, ports } = event;
   
   if (data && data.type) {
@@ -292,55 +267,6 @@ self.addEventListener('message', event => {
         .then(() => {
           if (ports && ports[0]) {
             ports[0].postMessage({ success: true, message: 'Cache pulita' });
-          }
-        })
-        .catch(error => {
-          if (ports && ports[0]) {
-            ports[0].postMessage({ success: false, error: error.message });
-          }
-        });
-    }
-    
-    if (data.type === 'GET_CACHE_INFO') {
-      caches.keys()
-        .then(cacheNames => {
-          const cacheInfo = cacheNames.map(name => ({ name, size: 'unknown' }));
-          if (ports && ports[0]) {
-            ports[0].postMessage({ caches: cacheInfo });
-          }
-        })
-        .catch(error => {
-          if (ports && ports[0]) {
-            ports[0].postMessage({ error: error.message });
-          }
-        });
-    }
-    
-    if (data.type === 'PRE_CACHE') {
-      const { urls } = data;
-      caches.open(DYNAMIC_CACHE)
-        .then(cache => {
-          const cachePromises = urls.map(url => {
-            // MODIFICA: Verifica che l'URL sia valido
-            if (!url.startsWith('http')) {
-              return Promise.resolve();
-            }
-            
-            return fetch(url)
-              .then(response => {
-                if (response.ok) {
-                  return cache.put(url, response);
-                }
-                return Promise.resolve();
-              })
-              .catch(() => Promise.resolve());
-          });
-          
-          return Promise.all(cachePromises);
-        })
-        .then(() => {
-          if (ports && ports[0]) {
-            ports[0].postMessage({ success: true });
           }
         })
         .catch(error => {
@@ -364,135 +290,4 @@ self.addEventListener('message', event => {
         });
     }
   }
-});
-
-// Push notifications (if configured)
-self.addEventListener('push', event => {
-  console.log('[Service Worker] Push notification ricevuta');
-  
-  if (!event.data) return;
-  
-  let notificationData;
-  try {
-    notificationData = event.data.json();
-  } catch {
-    notificationData = {
-      title: 'Fontane Napoli',
-      body: event.data.text() || 'Nuova notifica',
-      icon: './images/icona-avvio-144.png'
-    };
-  }
-  
-  const options = {
-    body: notificationData.body || 'Notifica',
-    icon: notificationData.icon || './images/icona-avvio-144.png',
-    badge: './images/favicon-32x32.png',
-    vibrate: [100, 50, 100],
-    data: {
-      url: notificationData.url || './',
-      timestamp: new Date().toISOString()
-    },
-    actions: [
-      {
-        action: 'open',
-        title: 'Apri'
-      },
-      {
-        action: 'close',
-        title: 'Chiudi'
-      }
-    ]
-  };
-  
-  event.waitUntil(
-    self.registration.showNotification(
-      notificationData.title || 'Fontane & Beverini Napoli',
-      options
-    )
-  );
-});
-
-// Handle notification clicks
-self.addEventListener('notificationclick', event => {
-  console.log('[Service Worker] Notifica cliccata:', event.action);
-  
-  event.notification.close();
-  
-  if (event.action === 'close') {
-    return;
-  }
-  
-  event.waitUntil(
-    clients.matchAll({
-      type: 'window',
-      includeUncontrolled: true
-    }).then(clientList => {
-      // Focus existing window if available
-      for (const client of clientList) {
-        if (client.url.includes(event.notification.data.url) && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      
-      // Otherwise open new window
-      if (clients.openWindow) {
-        return clients.openWindow(event.notification.data.url || './');
-      }
-    })
-  );
-});
-
-// Handle notification close
-self.addEventListener('notificationclose', event => {
-  console.log('[Service Worker] Notifica chiusa');
-});
-
-// Periodic sync for background updates (if supported)
-if ('periodicSync' in self.registration) {
-  self.addEventListener('periodicsync', event => {
-    if (event.tag === 'update-cache') {
-      console.log('[Service Worker] Periodic sync per aggiornamento cache');
-      event.waitUntil(updateCache());
-    }
-  });
-}
-
-async function updateCache() {
-  console.log('[Service Worker] Aggiornamento cache periodico');
-  
-  try {
-    // Update static cache
-    const cache = await caches.open(STATIC_CACHE);
-    const requests = await cache.keys();
-    
-    const updatePromises = requests.map(async request => {
-      try {
-        // MODIFICA: Verifica che l'URL sia valido
-        if (!request.url.startsWith('http')) {
-          return;
-        }
-        
-        const response = await fetch(request);
-        if (response.ok) {
-          await cache.put(request, response);
-        }
-      } catch (error) {
-        console.warn(`[Service Worker] Errore aggiornamento ${request.url}:`, error);
-      }
-    });
-    
-    await Promise.all(updatePromises);
-    console.log('[Service Worker] Cache aggiornata');
-  } catch (error) {
-    console.error('[Service Worker] Errore aggiornamento cache:', error);
-  }
-}
-
-// Error handling
-self.addEventListener('error', event => {
-  console.error('[Service Worker] Errore:', event.error);
-});
-
-self.addEventListener('unhandledrejection', event => {
-  console.error('[Service Worker] Promise non gestita:', event.reason);
 });
