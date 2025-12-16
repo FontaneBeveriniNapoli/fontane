@@ -1518,12 +1518,21 @@ function showDetail(id, type) {
     titleElement.textContent = item.nome;
     contentElement.innerHTML = generateDetailHTML(item, type);
     
-    // ✅ MODIFICA QUI: Forza lo scroll in alto quando si apre il dettaglio
-    contentElement.scrollTop = 0; 
-    
     currentLatLng = { lat: item.latitudine, lng: item.longitudine };
     document.getElementById('fixed-navigate-btn').classList.remove('hidden');
+    
+    // Mostra la schermata
     showScreen(screenId);
+
+    // ✅ CORREZIONE: Resetta lo scroll DOPO che la schermata è diventata visibile.
+    // Il setTimeout da 50ms dà tempo al browser di completare il rendering del layout (display:flex)
+    // prima di forzare lo scroll in alto.
+    setTimeout(() => {
+        if(contentElement) {
+            contentElement.scrollTop = 0;
+            contentElement.scrollTo(0, 0); // Doppio comando per sicurezza massima
+        }
+    }, 50);
 }
 
 // ✅ generateDetailHTML con logica condizionale per nascondere la descrizione vuota
