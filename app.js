@@ -1498,6 +1498,7 @@ function renderNewsItems(container, news) {
 function showDetail(id, type) {
     let item, screenId, titleElement, contentElement;
     
+    // Identificazione elemento e schermata
     if (type === 'fontana') {
         item = appData.fontane.find(f => f.id == id);
         screenId = 'fontana-detail-screen';
@@ -1515,6 +1516,7 @@ function showDetail(id, type) {
         return;
     }
     
+    // Aggiornamento contenuti
     titleElement.textContent = item.nome;
     contentElement.innerHTML = generateDetailHTML(item, type);
     
@@ -1524,15 +1526,35 @@ function showDetail(id, type) {
     // Mostra la schermata
     showScreen(screenId);
 
-    // ✅ CORREZIONE: Resetta lo scroll DOPO che la schermata è diventata visibile.
-    // Il setTimeout da 50ms dà tempo al browser di completare il rendering del layout (display:flex)
-    // prima di forzare lo scroll in alto.
+    // ============================================================
+    // FIX SCROLL MOBILE (Sequenza Tripla di Reset)
+    // ============================================================
+    
+    // 1. Reset immediato (tenta di bloccare subito)
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    if (contentElement) contentElement.scrollTop = 0;
+
+    // 2. Reset rapido (intercetta il cambio di display:flex)
     setTimeout(() => {
-        if(contentElement) {
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
+        if (contentElement) contentElement.scrollTop = 0;
+    }, 10);
+
+    // 3. Reset ritardato (fondamentale per i telefoni più lenti che ricalcolano il layout)
+    setTimeout(() => {
+        window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: 'auto' // 'auto' è più veloce di 'smooth' per i reset
+        });
+        if (contentElement) {
             contentElement.scrollTop = 0;
-            contentElement.scrollTo(0, 0); // Doppio comando per sicurezza massima
+            contentElement.scrollTo(0, 0);
         }
-    }, 50);
+    }, 100); // Ritardo aumentato a 100ms per sicurezza
 }
 
 // ✅ generateDetailHTML con logica condizionale per nascondere la descrizione vuota
