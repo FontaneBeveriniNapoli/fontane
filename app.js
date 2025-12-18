@@ -357,7 +357,7 @@ function setupLazyLoading() {
                 const src = img.getAttribute('data-src');
                 
                 if (src && !img.src.includes(src)) {
-                    loadImageWithCache(img, src);
+                    loadImageWithCache(img, src, img.dataset.type || 'default');
                 }
                 observer.unobserve(img);
             }
@@ -372,8 +372,8 @@ function setupLazyLoading() {
     });
 }
 
-// Caricamento immagini con cache
-function loadImageWithCache(imgElement, src) {
+// Caricamento immagini con cache (MODIFICATO per gestire fallback specifici)
+function loadImageWithCache(imgElement, src, fallbackType = 'default') {
     if (imageCache.has(src)) {
         imgElement.src = imageCache.get(src);
         return;
@@ -390,7 +390,15 @@ function loadImageWithCache(imgElement, src) {
     };
     
     img.onerror = () => {
-        imgElement.src = './images/sfondo-home.jpg';
+        // Fallback basato sul tipo
+        if (fallbackType === 'fontana') {
+            imgElement.src = './images/sfondo-home.jpg';
+        } else if (fallbackType === 'beverino') {
+            imgElement.src = './images/default-beverino.jpg';
+        } else {
+            imgElement.src = './images/sfondo-home.jpg';
+        }
+        imgElement.style.objectFit = 'cover';
     };
     
     img.src = src;
@@ -1354,6 +1362,8 @@ function showSkeletonLoaderCompact(container, count = 6) {
         container.appendChild(skeletonItem);
     }
 }
+
+// MODIFICA: renderGridItems con fallback specifico per fontane
 function renderGridItems(container, items, type) {
     if (!items || items.length === 0) {
         container.innerHTML = `
@@ -1378,13 +1388,16 @@ function renderGridItems(container, items, type) {
         
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
         
-        // MODIFICA QUI: Contenitore immagine robusto con fallback visivo
+        // MODIFICA QUI: Usa fallback specifico per fontane
+        const fallbackImage = type === 'fontana' ? 
+            './images/sfondo-home.jpg' : './images/default-beverino.jpg';
+        
         gridItem.innerHTML = `
             <div class="item-image-container">
-                <img src="${item.immagine || './images/sfondo-home.jpg'}" 
+                <img src="${item.immagine || fallbackImage}" 
                      alt="${item.nome}" 
                      class="item-image" 
-                     onerror="this.style.display='none'; this.parentElement.classList.add('fallback-active'); this.parentElement.innerHTML += '<div class=\\'image-fallback\\'><i class=\\'fas fa-image\\'></i></div>';">
+                     onerror="this.onerror=null; this.src='${fallbackImage}'; this.style.objectFit='cover';">
             </div>
             <div class="item-content">
                 <div class="item-name">${item.nome}</div>
@@ -1399,6 +1412,7 @@ function renderGridItems(container, items, type) {
     });
 }
 
+// MODIFICA: renderCompactItems con fallback specifico per beverini
 function renderCompactItems(container, items, type) {
     if (!items || items.length === 0) {
         container.innerHTML = `
@@ -1437,13 +1451,16 @@ function renderCompactItems(container, items, type) {
 
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
         
-        // MODIFICA QUI: Struttura con contenitore immagine sicuro
+        // MODIFICA QUI: Fallback specifico per beverini
+        const fallbackImage = type === 'beverino' ? 
+            './images/default-beverino.jpg' : './images/sfondo-home.jpg';
+        
         compactItem.innerHTML = `
             <div class="compact-item-image-container">
-                <img src="${item.immagine || './images/default-beverino.jpg'}"
+                <img src="${item.immagine || fallbackImage}"
                      alt="${item.nome}"
                      class="compact-item-image"
-                     onerror="this.style.display='none'; this.parentElement.classList.add('fallback-active'); this.parentElement.innerHTML += '<div class=\\'compact-image-fallback\\'><i class=\\'fas fa-faucet\\'></i></div>';">
+                     onerror="this.onerror=null; this.src='${fallbackImage}'; this.style.objectFit='cover';">
             </div>
             <div class="compact-item-content">
                 <div class="compact-item-header">
@@ -1557,7 +1574,7 @@ function showDetail(id, type) {
     }, 100); // Ritardo aumentato a 100ms per sicurezza
 }
 
-// ✅ generateDetailHTML con logica condizionale per nascondere la descrizione vuota
+// ✅ MODIFICA: generateDetailHTML con fallback specifico per tipo
 function generateDetailHTML(item, type) {
     let specificFields = '';
     if (type === 'fontana') {
@@ -1567,8 +1584,9 @@ function generateDetailHTML(item, type) {
         `;
     }
     
-    // MODIFICA: Determina l'immagine di fallback condizionale
-    const fallbackImage = type === 'fontana' ? './images/sfondo-home.jpg' : './images/default-beverino.jpg';
+    // MODIFICA: Fallback specifico per tipo
+    const fallbackImage = type === 'fontana' ? 
+        './images/sfondo-home.jpg' : './images/default-beverino.jpg';
 
     // ✅ LOGICA CONDIZIONALE: crea il blocco HTML solo se la descrizione non è vuota.
     const descriptionHTML = (item.descrizione && item.descrizione.trim())
@@ -1583,7 +1601,10 @@ function generateDetailHTML(item, type) {
         : ''; // Se vuota, la riga non appare
 
     return `
-        <img src="${item.immagine || fallbackImage}" class="detail-image" alt="${item.nome}" onerror="this.src='${fallbackImage}'">
+        <img src="${item.immagine || fallbackImage}" 
+             class="detail-image" 
+             alt="${item.nome}" 
+             onerror="this.onerror=null; this.src='${fallbackImage}'; this.style.objectFit='cover';">
         <div class="detail-info">
             <div class="info-item">
                 <span class="info-label">${type === 'fontana' ? 'Indirizzo:' : 'Posizione:'}</span>
@@ -2254,7 +2275,7 @@ async function saveFontana(e) {
                     appData.fontane[index] = { id: savedId, ...fontanaData };
                 }
             } else {
-                appData.fontane.push({ id: savedId, ...fontanaData });
+                appData.fontane.push({ id: savedId, ...fontanaData };
             }
             
             showToast('Fontana salvata localmente. Sarà sincronizzata online dopo.', 'info');
@@ -3615,10 +3636,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.addEventListener('error', function(e) {
         if (e.target.tagName === 'IMG') {
-            // Logica di fallback generica, lasciamo che i singoli template di rendering
-            // gestiscano il loro specifico fallback tramite onerror se necessario.
-            // L'unico fallback hardcoded qui è stato rimosso in favore dei template.
-            // e.target.src = './images/sfondo-home.jpg';
+            // Logica di fallback gestita dai singoli template
+            // Lascia che i template specifici gestiscano il fallback tramite onerror
         }
     }, true);
     

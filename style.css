@@ -200,8 +200,7 @@ body {
 
 /* ✅ CORREZIONE CSS: Altezza Home Screen (Solo Tab Bar + Safe Area) */
 #home-screen {
-    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
-                url('./images/sfondo-home.jpg');
+    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6));
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -213,6 +212,63 @@ body {
     flex: 1;
     /* CORREZIONE FINALE: 60px Tab Bar + safe area per eliminare spazio bianco */
     min-height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px)); 
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background mobile (<768px) */
+@media (max-width: 768px) {
+    #home-screen {
+        background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
+                          url('./images/sfondo-home-mobile.jpg');
+    }
+}
+
+/* Background desktop (≥768px) */
+@media (min-width: 768px) {
+    #home-screen {
+        background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
+                          url('./images/sfondo-home.jpg');
+    }
+}
+
+/* Per evitare flash durante il caricamento */
+#home-screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6));
+    z-index: -1;
+}
+
+#home-screen::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -2;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+/* Mobile background */
+@media (max-width: 768px) {
+    #home-screen::after {
+        background-image: url('./images/sfondo-home-mobile.jpg');
+    }
+}
+
+/* Desktop background */
+@media (min-width: 768px) {
+    #home-screen::after {
+        background-image: url('./images/sfondo-home.jpg');
+    }
 }
 
 .logo-container {

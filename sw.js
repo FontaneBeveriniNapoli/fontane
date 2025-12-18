@@ -1,4 +1,6 @@
-const CACHE_NAME = 'fontane-beverini-v3.7.4'; // VERSIONE AGGIORNATA
+[file name]: sw.js
+[file content begin]
+const CACHE_NAME = 'fontane-beverini-v3.8.0'; // VERSIONE AGGIORNATA
 const STATIC_CACHE = 'static-v3';
 const DYNAMIC_CACHE = 'dynamic-v2';
 
@@ -13,6 +15,7 @@ const STATIC_ASSETS = [
   './images/logo-app.png',
   './images/logo-comune.png',
   './images/sfondo-home.jpg',
+  './images/sfondo-home-mobile.jpg', // AGGIUNTA: immagine mobile per background
   './images/default-beverino.jpg',
   './images/icona-avvio-144.png',
   './images/icona-avvio-192.png',
@@ -189,10 +192,13 @@ self.addEventListener('fetch', event => {
             }
             
             if (event.request.destination === 'image') {
-              if (event.request.url.includes('default-beverino.jpg')) {
+              // AGGIORNATO: Se è un'immagine di fontana, usa sfondo-home.jpg come fallback
+              if (event.request.url.includes('fontana') || 
+                  event.request.url.includes('default-beverino.jpg')) {
                 return caches.match('./images/sfondo-home.jpg');
               }
-              return caches.match('./images/sfondo-home.jpg');
+              // Per altre immagini generiche
+              return caches.match('./images/default-beverino.jpg');
             }
 
             if (event.request.destination === 'script') {
@@ -291,3 +297,4 @@ self.addEventListener('message', event => {
     }
   }
 });
+[file content end]
