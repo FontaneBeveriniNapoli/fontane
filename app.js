@@ -1354,8 +1354,6 @@ function showSkeletonLoaderCompact(container, count = 6) {
         container.appendChild(skeletonItem);
     }
 }
-
-// MODIFICA 1: Immagine di default per la lista (fontane)
 function renderGridItems(container, items, type) {
     if (!items || items.length === 0) {
         container.innerHTML = `
@@ -1380,13 +1378,10 @@ function renderGridItems(container, items, type) {
         
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
         
-        // MODIFICA 1: Usa sempre lo sfondo orizzontale come immagine di default
-        const imgUrl = item.immagine || './images/sfondo-home.jpg';
-        
         // MODIFICA QUI: Contenitore immagine robusto con fallback visivo
         gridItem.innerHTML = `
             <div class="item-image-container">
-                <img src="${imgUrl}" 
+                <img src="${item.immagine || './images/sfondo-home.jpg'}" 
                      alt="${item.nome}" 
                      class="item-image" 
                      onerror="this.style.display='none'; this.parentElement.classList.add('fallback-active'); this.parentElement.innerHTML += '<div class=\\'image-fallback\\'><i class=\\'fas fa-image\\'></i></div>';">
@@ -1586,9 +1581,8 @@ function generateDetailHTML(item, type) {
             </div>
         ` 
         : ''; // Se vuota, la riga non appare
-    
-    // MODIFICA 2: Aggiunta tasto "Segnala Guasto"
-    const detailsHtml = `
+
+    return `
         <img src="${item.immagine || fallbackImage}" class="detail-image" alt="${item.nome}" onerror="this.src='${fallbackImage}'">
         <div class="detail-info">
             <div class="info-item">
@@ -1610,18 +1604,7 @@ function generateDetailHTML(item, type) {
                 <i class="fas fa-share-alt"></i> Condividi
             </button>
         </div>
-        
-        <!-- MODIFICA 2: Aggiunta tasto Segnala Guasto -->
-        <div class="report-section" style="margin-top: 20px;">
-            <a href="mailto:assistenza@abcnapoli.it?subject=Segnalazione Guasto: ${item.nome}&body=Gentile ABC Napoli, segnalo un problema presso: ${item.indirizzo}" 
-               class="btn-report" 
-               style="display:block; width:100%; padding:12px; background:#fff1f2; color:#ef4444; text-align:center; border-radius:10px; text-decoration:none; font-weight:bold; border:1px solid #fecaca;">
-               ⚠️ Segnala guasto o mancanza d'acqua
-            </a>
-        </div>
     `;
-    
-    return detailsHtml;
 }
 
 // Navigation
@@ -2271,7 +2254,7 @@ async function saveFontana(e) {
                     appData.fontane[index] = { id: savedId, ...fontanaData };
                 }
             } else {
-                appData.fontane.push({ id: savedId, ...fontanaData };
+                appData.fontane.push({ id: savedId, ...fontanaData });
             }
             
             showToast('Fontana salvata localmente. Sarà sincronizzata online dopo.', 'info');
@@ -2444,7 +2427,7 @@ async function saveBeverino(e) {
                     appData.beverini[index] = { id: savedId, ...beverinoData };
                 }
             } else {
-                appData.beverini.push({ id: savedId, ...beverinoData };
+                appData.beverini.push({ id: savedId, ...beverinoData });
             }
             
             showToast('Beverino salvato localmente. Sarà sincronizzato online dopo.', 'info');
@@ -2572,7 +2555,7 @@ async function saveNews(e) {
                     'news',
                     newsData
                 );
-                appData.news.push({ id: savedId, ...newsData };
+                appData.news.push({ id: savedId, ...newsData });
                 showToast(`News aggiunta con successo (ID: ${savedId})`, 'success');
             }
         } else {
@@ -2591,7 +2574,7 @@ async function saveNews(e) {
                     appData.news[index] = { id: savedId, ...newsData };
                 }
             } else {
-                appData.news.push({ id: savedId, ...newsData };
+                appData.news.push({ id: savedId, ...newsData });
             }
             
             showToast('News salvata localmente. Sarà sincronizzata online dopo.', 'info');
@@ -3916,28 +3899,3 @@ document.addEventListener('touchend', function(e) {
 });
 
 console.log('✨ Sistema splash screen inizializzato');
-
-// MODIFICA 3: Blocco Permessi Collaboratori (Sicurezza - Versione UID)
-// --- INCOLLA QUESTO ALLA FINE DEL FILE APP.JS ---
-
-firebase.auth().onAuthStateChanged((user) => {
-    // IL TUO UID AMMINISTRATORE (Super Admin)
-    const SUPER_ADMIN_UID = 'vVJAcEUI9CdL7cHubkTNPRALxh33'; 
-    
-    // Se l'utente è loggato MA il suo codice NON è il tuo...
-    if (user && user.uid !== SUPER_ADMIN_UID) {
-        console.log("Accesso Collaboratore: Funzioni distruttive disabilitate.");
-        
-        // Inietta uno stile CSS forzato per nascondere i tasti a chi non è Super Admin
-        const style = document.createElement('style');
-        style.innerHTML = `
-            .btn-delete, .delete-btn, 
-            #btn-export, #btn-import, 
-            .import-section, .export-section,
-            .admin-danger { 
-                display: none !important; 
-            }
-        `;
-        document.head.appendChild(style);
-    }
-});
