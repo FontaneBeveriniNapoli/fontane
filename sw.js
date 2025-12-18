@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fontane-beverini-v3.7.4'; // VERSIONE AGGIORNATA
+const CACHE_NAME = 'abc-napoli-v4.0.0-prod'; // VERSIONE AGGIORNATA
 const STATIC_CACHE = 'static-v3';
 const DYNAMIC_CACHE = 'dynamic-v2';
 
@@ -13,6 +13,7 @@ const STATIC_ASSETS = [
   './images/logo-app.png',
   './images/logo-comune.png',
   './images/sfondo-home.jpg',
+  './images/sfondo-home-mobile.jpg',
   './images/default-beverino.jpg',
   './images/icona-avvio-144.png',
   './images/icona-avvio-192.png',

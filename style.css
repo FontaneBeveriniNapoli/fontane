@@ -198,21 +198,33 @@ body {
     opacity: 1;
 }
 
-/* ✅ CORREZIONE CSS: Altezza Home Screen (Solo Tab Bar + Safe Area) */
+/* ===== MODIFICA 1: HOME SCREEN RESPONSIVE (RIGHE 125+) ===== */
 #home-screen {
+    /* MOBILE DEFAULT: Usa la foto verticale */
     background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
-                url('./images/sfondo-home.jpg');
+                url('./images/sfondo-home-mobile.jpg'); 
     background-size: cover;
-    background-position: center;
+    background-position: center bottom;
     background-attachment: fixed;
+    background-color: #0a192f; /* Colore di sicurezza anti-banda bianca */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 30px 20px;
     flex: 1;
-    /* CORREZIONE FINALE: 60px Tab Bar + safe area per eliminare spazio bianco */
+    /* Elimina spazio bianco sotto */
     min-height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px)); 
+}
+
+@media (min-width: 1024px) {
+    #home-screen {
+        /* DESKTOP: Usa la foto orizzontale */
+        background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
+                          url('./images/sfondo-home.jpg');
+        background-attachment: scroll;
+        min-height: calc(100vh - 80px);
+    }
 }
 
 .logo-container {
@@ -757,19 +769,25 @@ body {
     box-shadow: 0 8px 25px rgba(0,0,0,0.15);
 }
 
-/* VECCHIO STILE (Commentato o rimosso se preferisci, ma mantenuto per compatibilità) */
+/* ===== MODIFICA 2: PROTEZIONE IMMAGINI LISTA (RIGHE 465+) ===== */
+.item-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Inquadra la parte alta dell'immagine (dove sta la fontana) */
+    object-position: center 20%; 
+    display: block;
+}
+
 .item-image-container {
     position: relative;
     width: 100%;
     height: 180px;
     overflow: hidden;
-}
-
-.item-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb); /* Sfondo di default */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .grid-item:hover .item-image {
@@ -3871,4 +3889,25 @@ body {
 .compact-item {
     display: flex;
     align-items: stretch; /* Assicura altezza uguale */
+}
+
+/* ===== NUOVO: MODIFICA 3 - PULSANTE SEGNALAZIONE GUASTI (IN FONDO AL FILE) ===== */
+.btn-report {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background-color: #fff1f2;
+    color: var(--primary-red);
+    border-radius: 10px;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: 1px solid #fecaca;
+    margin-top: 15px;
+    transition: background 0.2s;
+}
+
+.btn-report:hover {
+    background-color: #ffe4e6;
 }
