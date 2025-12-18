@@ -3937,6 +3937,6 @@ document.addEventListener('touchend', function(e) {
     }
     
     lastTap = currentTime;
-});
+);
 
 console.log('✨ Sistema splash screen inizializzato');

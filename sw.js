@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fontane-beverini-v3.8.7'; // VERSIONE AGGIORNATA
+const CACHE_NAME = 'fontane-beverini-v3.9.0'; // VERSIONE AGGIORNATA
 const STATIC_CACHE = 'static-v3';
 const DYNAMIC_CACHE = 'dynamic-v2';
 
@@ -22,8 +22,7 @@ const STATIC_ASSETS = [
   './images/apple-touch-icon.png',
   './images/favicon.ico',
   './images/favicon-16x16.png',
-  './images/favicon-32x32.png',
-  './images/screenshot-1.png'
+  './images/favicon-32x32.png'
 ];
 
 const EXTERNAL_ASSETS = [
