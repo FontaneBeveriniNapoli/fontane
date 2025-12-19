@@ -3875,3 +3875,31 @@ body {
     display: flex;
     align-items: stretch; /* Assicura altezza uguale */
 }
+/* Modifiche per il nuovo Menu e Form Segnalazioni */
+
+/* Rende il bottone menu (3 puntini) tondo ed elegante */
+.admin-icon-btn {
+    width: 42px; 
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.4);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.admin-icon-btn i {
+    font-size: 1.2rem; /* Icona un po' più grande */
+}
+
+/* Animazione per il menu a tendina */
+.menu-modal-content {
+    animation: fadeInMenu 0.2s ease-out;
+    transform-origin: top right;
+}
+
+@keyframes fadeInMenu {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}

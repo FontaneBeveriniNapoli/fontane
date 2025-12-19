@@ -96,9 +96,7 @@
     <link rel="stylesheet" href="./style.css">
 
     <script>
-        // Rimosso: Reimposta lo scroll all'inizio della pagina al caricamento (gestito in app.js)
-        
-        // Gestione scroll per ancore (es. fontane) - Mantenuta per scroll interni ad hash
+        // Gestione scroll per ancore
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
@@ -786,8 +784,8 @@
 
     <div class="app-container">
         <div class="admin-icon-btn-container">
-            <button class="admin-icon-btn" onclick="openAdminPanel()" title="Amministratore">
-                <i class="fas fa-cog"></i>
+            <button class="admin-icon-btn" onclick="toggleMenuModal()">
+                <i class="fas fa-ellipsis-v"></i>
             </button>
         </div>
 
@@ -980,6 +978,54 @@
             </div>
         </div>
 
+        <div id="segnalazioni-screen" class="screen">
+            <div class="app-header" style="background: linear-gradient(135deg, #ef4444, #b91c1c);">
+                <button class="back-btn" onclick="showScreen('home-screen')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="screen-title">Segnalazione</div>
+            </div>
+
+            <div class="content-area">
+                <div class="report-form-container" style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <p style="margin-bottom: 20px; color: #666; font-size: 0.95rem; line-height:1.5;">
+                        Hai notato un problema? Compila il modulo. <br>
+                        Si aprirà la tua app di posta per inviare una mail ufficiale a <b>ABC Napoli</b>.
+                    </p>
+
+                    <form onsubmit="inviaSegnalazione(event)">
+                        <div class="form-group" style="margin-bottom:20px;">
+                            <label style="font-weight:600; display:block; margin-bottom:8px;">Tipo segnalazione</label>
+                            <select id="report-type" class="form-input" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; font-size:1rem; background: #f9f9f9;">
+                                <option value="Guasto">Guasto / Non eroga acqua</option>
+                                <option value="Perdita">Perdita d'acqua</option>
+                                <option value="Sporcizia">Richiesta pulizia/Manutenzione</option>
+                                <option value="Nuova Fontana">Segnala fontana mancante</option>
+                                <option value="Altro">Altro</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:25px;">
+                            <label style="font-weight:600; display:block; margin-bottom:8px;">Descrizione e Posizione</label>
+                            <textarea id="report-desc" rows="5" placeholder="Esempio: La fontanella in Piazza Plebiscito perde acqua dalla base..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; font-size:1rem; background: #f9f9f9; font-family:inherit; resize:none;"></textarea>
+                        </div>
+
+                        <button type="submit" style="width:100%; padding:15px; background: linear-gradient(135deg, #ef4444, #b91c1c); color:white; border:none; border-radius:12px; font-weight:700; font-size:1.1rem; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);">
+                            <i class="fas fa-paper-plane"></i> INVIA EMAIL
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="tab-bar">
+                <button class="tab-btn" onclick="showScreen('home-screen')"><span class="tab-icon"><i class="fas fa-home"></i></span><span>Home</span></button>
+                <button class="tab-btn" onclick="showScreen('fontane-screen')"><span class="tab-icon"><i class="fas fa-monument"></i></span><span>Fontane</span></button>
+                <button class="tab-btn" onclick="showScreen('beverini-screen')"><span class="tab-icon"><i class="fas fa-faucet"></i></span><span>Beverini</span></button>
+                <button class="tab-btn" onclick="showScreen('mappa-screen')"><span class="tab-icon"><i class="fas fa-map-marked-alt"></i></span><span>Mappa</span></button>
+                <button class="tab-btn" onclick="showScreen('news-screen')"><span class="tab-icon"><i class="fas fa-newspaper"></i></span><span>News</span></button>
+            </div>
+        </div>
+
         <div class="tab-bar">
             <button class="tab-btn active" data-target="home-screen" onclick="showScreen('home-screen')">
                 <span class="tab-icon"><i class="fas fa-home"></i></span>
@@ -1001,6 +1047,26 @@
                 <span class="tab-icon"><i class="fas fa-newspaper"></i></span>
                 <span>News</span>
             </button>
+        </div>
+    </div>
+
+    <div id="top-menu-modal" class="modal-overlay" onclick="closeMenuModal(event)" style="z-index: 9999;">
+        <div class="modal-content menu-modal-content" style="width: 280px; padding: 20px; position: absolute; top: 70px; right: 20px;">
+            <h3 class="modal-title" style="margin-bottom: 20px; font-size:1.2rem;">Menu</h3>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn primary" onclick="openReportScreen()" style="background: #ef4444;">
+                    <i class="fas fa-bullhorn"></i> Invia Segnalazione
+                </button>
+                
+                <button class="modal-btn secondary" onclick="goToAdmin()">
+                    <i class="fas fa-user-shield"></i> Area Riservata
+                </button>
+                
+                <button class="modal-btn" onclick="toggleMenuModal()" style="border: 1px solid #ddd; background:white; margin-top:10px;">
+                    Chiudi
+                </button>
+            </div>
         </div>
     </div>
 

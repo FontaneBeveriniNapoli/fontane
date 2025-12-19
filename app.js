@@ -3899,3 +3899,78 @@ document.addEventListener('touchend', function(e) {
 });
 
 console.log('✨ Sistema splash screen inizializzato');
+// ==========================================
+// NUOVE FUNZIONI: MENU E SEGNALAZIONI EMAIL
+// ==========================================
+
+// Apre/Chiude il menu a tendina (3 puntini)
+function toggleMenuModal() {
+    const modal = document.getElementById('top-menu-modal');
+    // Se è nascosto o non ha stile display, lo mostra, altrimenti lo nasconde
+    if (!modal.style.display || modal.style.display === 'none') {
+        modal.style.display = 'flex';
+    } else {
+        modal.style.display = 'none';
+    }
+}
+
+// Chiude il menu se clicchi sulla parte scura (fuori dal box)
+function closeMenuModal(event) {
+    if (event.target.id === 'top-menu-modal') {
+        document.getElementById('top-menu-modal').style.display = 'none';
+    }
+}
+
+// Apre la schermata rossa di segnalazione
+function openReportScreen() {
+    document.getElementById('top-menu-modal').style.display = 'none'; // Chiude menu
+    showScreen('segnalazioni-screen'); // Mostra schermata
+}
+
+// Gestisce il click su "Area Riservata"
+function goToAdmin() {
+    document.getElementById('top-menu-modal').style.display = 'none';
+    
+    // Logica originale per aprire l'admin
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'true') {
+        // Se c'è già il pannello overlay nel DOM, usalo
+        const adminOverlay = document.querySelector('.admin-panel-overlay');
+        if (adminOverlay) adminOverlay.style.display = 'flex';
+    } else {
+        // Altrimenti prova ad aprirlo o ricarica
+        if(typeof showAdminPanel === 'function') {
+            showAdminPanel();
+        } else {
+            window.location.href = window.location.pathname + '?admin=true';
+        }
+    }
+}
+
+// FUNZIONE CHE PREPARA L'EMAIL
+function inviaSegnalazione(event) {
+    event.preventDefault();
+
+    const tipo = document.getElementById('report-type').value;
+    const descrizione = document.getElementById('report-desc').value;
+    
+    // INDIRIZZO EMAIL UFFICIALE
+    const emailDestinatario = "fontane.beverini@abc.napoli.it"; 
+    
+    const oggetto = encodeURIComponent(`Segnalazione App ABC: ${tipo}`);
+    
+    // Costruiamo il corpo della mail in modo ordinato
+    const corpo = encodeURIComponent(
+        `Gentile Assistenza ABC Napoli,\n\n` +
+        `Vorrei segnalare il seguente problema:\n` +
+        `TIPO: ${tipo}\n\n` +
+        `DESCRIZIONE E POSIZIONE:\n${descrizione}\n\n` +
+        `---\nInviato dall'App ABC Napoli F&B`
+    );
+
+    // Apre l'app di posta predefinita
+    window.location.href = `mailto:${emailDestinatario}?subject=${oggetto}&body=${corpo}`;
+    
+    // Opzionale: svuota il campo descrizione dopo l'invio
+    // document.getElementById('report-desc').value = ''; 
+}
