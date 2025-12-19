@@ -3927,23 +3927,20 @@ function openReportScreen() {
     showScreen('segnalazioni-screen'); // Mostra schermata
 }
 
-// Gestisce il click su "Area Riservata"
+// --- VERSIONE CORRETTA E SICURA ---
 function goToAdmin() {
-    document.getElementById('top-menu-modal').style.display = 'none';
+    // 1. Chiude il menu a tendina
+    const menu = document.getElementById('top-menu-modal');
+    if (menu) menu.style.display = 'none';
     
-    // Logica originale per aprire l'admin
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'true') {
-        // Se c'è già il pannello overlay nel DOM, usalo
-        const adminOverlay = document.querySelector('.admin-panel-overlay');
-        if (adminOverlay) adminOverlay.style.display = 'flex';
+    // 2. Chiama la funzione che controlla la password
+    if (typeof openAdminPanel === 'function') {
+        openAdminPanel(); 
     } else {
-        // Altrimenti prova ad aprirlo o ricarica
-        if(typeof showAdminPanel === 'function') {
-            showAdminPanel();
-        } else {
-            window.location.href = window.location.pathname + '?admin=true';
-        }
+        // Fallback di sicurezza: se qualcosa non va, mostra comunque il login
+        console.warn("Funzione openAdminPanel non trovata, apro login manualmente");
+        const authModal = document.getElementById('admin-auth');
+        if (authModal) authModal.style.display = 'flex';
     }
 }
 
