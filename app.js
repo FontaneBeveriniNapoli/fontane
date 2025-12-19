@@ -183,7 +183,7 @@ window.addEventListener('error', function(event) {
         lineno: event.lineno,
         colno: event.colno
     });
-    event.preventDefault();
+    event.preventDefault(); // Previene il log di default in console se desiderato
 });
 
 window.addEventListener('unhandledrejection', function(event) {
@@ -211,7 +211,7 @@ async function handleError(context, error, userMessage = null) {
         await handleGenericError(context, error);
     }
     
-    // Mostra messaggio all'utente (ora disattivato in showToast)
+    // Mostra messaggio all'utente
     if (userMessage) {
         showToast(userMessage, 'error', 5000);
     }
@@ -762,7 +762,7 @@ function logPerformanceMetric(name, duration) {
 }
 
 // ============================================
-// VARIABILI GLOBALI ORIGINALI
+// VARIABILI GLOBALI
 // ============================================
 
 let appData = {
@@ -770,6 +770,7 @@ let appData = {
     beverini: [],
     news: []
 };
+let currentUserRole = 'editor'; // Default: Editor (limitato) per sicurezza
 let currentLatLng = null;
 let screenHistory = ['home-screen'];
 let currentFilter = {
@@ -783,7 +784,6 @@ let map = null;
 let clusterGroup = null;
 let markers = new Map();
 
-// Variabili per la gestione del doppio tocco/uscita
 let backPressTimer = null;
 const EXIT_TOAST_TIMEOUT = 2000; 
 
@@ -792,34 +792,28 @@ let isAdminAuthenticated = false;
 let adminAuthTimeout = null;
 
 // ============================================
-// NUOVA FUNZIONE CENTRALE PER RESET SCROLL (AGGIORNATA)
+// FUNZIONE RESET SCROLL
 // ============================================
 function resetScroll() {
-    // 1. Resetta lo scroll della finestra principale
     window.scrollTo({
         top: 0,
         left: 0,
         behavior: 'instant'
     });
 
-    // 2. Resetta lo scroll delle aree di lista (Fontane/Beverini/News list)
     document.querySelectorAll('.content-area').forEach(area => {
         area.scrollTop = 0;
     });
 
-    // 3. Resetta lo scroll delle schede dettaglio (dove c'è l'immagine)
     document.querySelectorAll('.detail-content').forEach(detail => {
         detail.scrollTop = 0;
     });
 }
-// Rimosso: window.addEventListener('load', resetScroll);
-
 
 // ============================================
-// FUNZIONI ORIGINALI (MODIFICATE CON NUOVE FEATURES)
+// FUNZIONI FIREBASE E LOCALI
 // ============================================
 
-// Firebase Firestore functions
 async function loadFirebaseData(type) {
     try {
         const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
@@ -909,7 +903,6 @@ async function deleteFirebaseData(type, id) {
     }
 }
 
-// Local Storage functions
 function saveLocalData() {
     try {
         localStorage.setItem('fontaneBeveriniData', JSON.stringify(appData));
@@ -935,7 +928,6 @@ function loadLocalData(type = null) {
     return type ? [] : appData;
 }
 
-// Funzioni principali
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -962,15 +954,27 @@ function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('it-IT', options);
 }
 
-// ======================================================
-// MODIFICA: Funzione showToast() con output visivo rimosso
-// ======================================================
 function showToast(message, type = 'info', duration = 3000) {
-    console.log(`[Toast Disabled] Tipo: ${type}, Messaggio: ${message}`);
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    
+    toast.textContent = message;
+    toast.className = `toast show ${type}`;
+    
+    if (type === 'error') {
+        toast.style.backgroundColor = '#ef4444';
+    } else if (type === 'success') {
+        toast.style.backgroundColor = '#10b981';
+    } else if (type === 'warning') {
+        toast.style.backgroundColor = '#f59e0b';
+    } else {
+        toast.style.backgroundColor = '#3b82f6';
+    }
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
 }
-// ======================================================
-// FINE MODIFICA
-// ======================================================
 
 function logActivity(description) {
     const timestamp = new Date().toLocaleString('it-IT');
@@ -1014,7 +1018,10 @@ function updateDashboardStats() {
     document.getElementById('total-news').textContent = appData.news.length;
 }
 
-// Admin Authentication
+// ============================================
+// ADMIN AUTH CON RUOLI (MODIFICATO)
+// ============================================
+
 function openAdminPanel() {
     if (isAdminAuthenticated) {
         showAdminPanel();
@@ -1040,42 +1047,70 @@ async function checkAdminAuth() {
     const errorElement = document.getElementById('auth-error');
 
     try {
+        // 1. Login Authentication
         const userCredential = await window.firebaseSignIn(window.auth, email, password);
-        isAdminAuthenticated = true;
+        const user = userCredential.user;
+
+        // 2. Controllo Ruolo nel Database
+        const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
         
-        closeAdminAuth();
-        showAdminPanel();
-        
-        if (adminAuthTimeout) {
-            clearTimeout(adminAuthTimeout);
+        try {
+            const docRef = doc(window.db, "utenti_autorizzati", user.email);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists() && docSnap.data().ruolo === 'admin') {
+                currentUserRole = 'admin'; // È il capo!
+                showToast('Accesso Amministratore (Completo)', 'success');
+            } else {
+                currentUserRole = 'editor'; // Non è in lista o è editor -> Accesso limitato
+                showToast('Accesso Operatore (Limitato)', 'info');
+            }
+        } catch (dbError) {
+            console.warn("Impossibile verificare ruolo, attivo modalità editor sicura");
+            currentUserRole = 'editor'; // Fallback di sicurezza
         }
+
+        isAdminAuthenticated = true;
+        closeAdminAuth();
+        showAdminPanel(); // Apre il pannello adattandolo al ruolo
+
+        if (adminAuthTimeout) clearTimeout(adminAuthTimeout);
         adminAuthTimeout = setTimeout(() => {
-            isAdminAuthenticated = false;
-            showToast('Sessione amministratore scaduta', 'info');
+            logoutAdmin();
+            showToast('Sessione scaduta', 'info');
         }, 30 * 60 * 1000);
-        
-        showToast('Accesso amministratore effettuato', 'success');
-        logActivity('Accesso amministratore effettuato');
-        
+
     } catch (error) {
         errorElement.style.display = 'block';
-        document.getElementById('admin-password').value = '';
-        document.getElementById('admin-password').focus();
-        console.error('Errore autenticazione:', error);
+        errorElement.textContent = "Credenziali errate o errore di connessione";
+        console.error('Errore auth:', error);
     }
 }
 
 function showAdminPanel() {
     document.getElementById('admin-panel').style.display = 'flex';
     
+    // Logica permessi: Nascondi sezioni sensibili se non sei admin
+    const isHidden = currentUserRole !== 'admin';
+    const displayValue = isHidden ? 'none' : 'block';
+
+    // Nascondi sezioni Import/Export, Backup, Configurazione e il tab Config
+    document.querySelectorAll('.import-export-section, .backup-section, .config-section, .analytics-actions-section').forEach(el => el.style.display = displayValue);
+    
+    // Nascondi tab specifici
+    const configTab = document.querySelector('.admin-tab-btn[data-tab="config-admin"]');
+    if(configTab) configTab.style.display = displayValue;
+
+    // Carica dati
     loadAdminFontane();
     loadAdminBeverini();
     loadAdminNews();
     updateDashboardStats();
     
-    // ✅ CARICA ANALYTICS DASHBOARD
-    loadAnalyticsDashboard();
-    updatePerformanceMetrics();
+    // Carica analytics
+    if(typeof loadAnalyticsDashboard === 'function') {
+        loadAnalyticsDashboard();
+    }
     
     const savedLog = localStorage.getItem('activityLog');
     if (savedLog) {
@@ -1090,16 +1125,19 @@ function closeAdminPanel() {
 
 function logoutAdmin() {
     isAdminAuthenticated = false;
+    currentUserRole = 'editor'; // Reset ruolo
     if (adminAuthTimeout) {
         clearTimeout(adminAuthTimeout);
         adminAuthTimeout = null;
     }
     closeAdminPanel();
-    showToast('Logout amministratore effettuato', 'success');
-    logActivity('Logout amministratore');
+    showToast('Logout effettuato', 'success');
 }
 
-// Navigation and Screen Management
+// ============================================
+// NAVIGATION & SCREENS
+// ============================================
+
 function showScreen(screenId) {
     const currentScreen = screenHistory[screenHistory.length - 1];
     
@@ -1122,18 +1160,13 @@ function showScreen(screenId) {
             screenHistory = screenHistory.slice(-10);
         }
         
-        // ✅ CORREZIONE FONDAMENTALE: Forza lo scroll all'inizio della pagina per tutte le schermate
         resetScroll();
-        
         initializeScreenContent(screenId);
     }
     
     updateTabBar(screenId);
-    
-    // CORREZIONE: Nascondi sempre il pulsante di navigazione quando si cambia schermata
     document.getElementById('fixed-navigate-btn').classList.add('hidden');
     
-    // Pulisci il backPressTimer se navighiamo in avanti dalla Home
     if (backPressTimer) {
         clearTimeout(backPressTimer);
         backPressTimer = null;
@@ -1143,7 +1176,6 @@ function showScreen(screenId) {
 }
 
 function goBack() {
-    // CORREZIONE: Nascondi subito il pulsante di navigazione all'inizio di goBack
     document.getElementById('fixed-navigate-btn').classList.add('hidden');
     
     if (screenHistory.length > 1) {
@@ -1161,9 +1193,7 @@ function goBack() {
                 targetScreen.classList.add('active');
             }, 10);
             
-            // ✅ CORREZIONE: Forza lo scroll anche quando si torna indietro
             resetScroll();
-            
             initializeScreenContent(previousScreen);
         }
         updateTabBar(previousScreen);
@@ -1194,6 +1224,7 @@ function initializeScreenContent(screenId) {
             break;
     }
 }
+
 // Data Loading Functions
 async function loadFontane() {
     const fontaneList = document.getElementById('fontane-list');
@@ -1354,6 +1385,7 @@ function showSkeletonLoaderCompact(container, count = 6) {
         container.appendChild(skeletonItem);
     }
 }
+
 function renderGridItems(container, items, type) {
     if (!items || items.length === 0) {
         container.innerHTML = `
@@ -1378,7 +1410,6 @@ function renderGridItems(container, items, type) {
         
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
         
-        // MODIFICA QUI: Contenitore immagine robusto con fallback visivo
         gridItem.innerHTML = `
             <div class="item-image-container">
                 <img src="${item.immagine || './images/sfondo-home.jpg'}" 
@@ -1437,7 +1468,6 @@ function renderCompactItems(container, items, type) {
 
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
         
-        // MODIFICA QUI: Struttura con contenitore immagine sicuro
         compactItem.innerHTML = `
             <div class="compact-item-image-container">
                 <img src="${item.immagine || './images/default-beverino.jpg'}"
@@ -1498,7 +1528,6 @@ function renderNewsItems(container, news) {
 function showDetail(id, type) {
     let item, screenId, titleElement, contentElement;
     
-    // Identificazione elemento e schermata
     if (type === 'fontana') {
         item = appData.fontane.find(f => f.id == id);
         screenId = 'fontana-detail-screen';
@@ -1516,48 +1545,39 @@ function showDetail(id, type) {
         return;
     }
     
-    // Aggiornamento contenuti
     titleElement.textContent = item.nome;
     contentElement.innerHTML = generateDetailHTML(item, type);
     
     currentLatLng = { lat: item.latitudine, lng: item.longitudine };
     document.getElementById('fixed-navigate-btn').classList.remove('hidden');
     
-    // Mostra la schermata
     showScreen(screenId);
 
-    // ============================================================
-    // FIX SCROLL MOBILE (Sequenza Tripla di Reset)
-    // ============================================================
-    
-    // 1. Reset immediato (tenta di bloccare subito)
+    // FIX SCROLL MOBILE
     window.scrollTo(0, 0);
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
     if (contentElement) contentElement.scrollTop = 0;
 
-    // 2. Reset rapido (intercetta il cambio di display:flex)
     setTimeout(() => {
         window.scrollTo(0, 0);
         document.body.scrollTop = 0;
         if (contentElement) contentElement.scrollTop = 0;
     }, 10);
 
-    // 3. Reset ritardato (fondamentale per i telefoni più lenti che ricalcolano il layout)
     setTimeout(() => {
         window.scrollTo({
             top: 0,
             left: 0,
-            behavior: 'auto' // 'auto' è più veloce di 'smooth' per i reset
+            behavior: 'auto'
         });
         if (contentElement) {
             contentElement.scrollTop = 0;
             contentElement.scrollTo(0, 0);
         }
-    }, 100); // Ritardo aumentato a 100ms per sicurezza
+    }, 100);
 }
 
-// ✅ generateDetailHTML con logica condizionale per nascondere la descrizione vuota
 function generateDetailHTML(item, type) {
     let specificFields = '';
     if (type === 'fontana') {
@@ -1567,10 +1587,8 @@ function generateDetailHTML(item, type) {
         `;
     }
     
-    // MODIFICA: Determina l'immagine di fallback condizionale
     const fallbackImage = type === 'fontana' ? './images/sfondo-home.jpg' : './images/default-beverino.jpg';
 
-    // ✅ LOGICA CONDIZIONALE: crea il blocco HTML solo se la descrizione non è vuota.
     const descriptionHTML = (item.descrizione && item.descrizione.trim())
         ? `
             <div class="detail-info">
@@ -1580,7 +1598,7 @@ function generateDetailHTML(item, type) {
                 </div>
             </div>
         ` 
-        : ''; // Se vuota, la riga non appare
+        : '';
 
     return `
         <img src="${item.immagine || fallbackImage}" class="detail-image" alt="${item.nome}" onerror="this.src='${fallbackImage}'">
@@ -2139,6 +2157,12 @@ async function loadAdminFontane() {
     
     tbody.innerHTML = '';
     appData.fontane.forEach(fontana => {
+        // Logica per mostrare o nascondere il pulsante elimina
+        let deleteButtonHtml = '';
+        if (currentUserRole === 'admin') {
+            deleteButtonHtml = `<button class="delete-btn" onclick="deleteFontana('${fontana.id}')">Elimina</button>`;
+        }
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${fontana.id}</td>
@@ -2147,7 +2171,7 @@ async function loadAdminFontane() {
             <td><span class="item-status status-${fontana.stato}">${getStatusText(fontana.stato)}</span></td>
             <td class="admin-item-actions">
                 <button class="edit-btn" onclick="editFontana('${fontana.id}')">Modifica</button>
-                <button class="delete-btn" onclick="deleteFontana('${fontana.id}')">Elimina</button>
+                ${deleteButtonHtml}
             </td>
         `;
         tbody.appendChild(row);
@@ -2172,7 +2196,6 @@ function editFontana(id) {
     showAdminTab('fontane-admin');
 }
 
-// MODIFICA: saveFontana con supporto offline
 async function saveFontana(e) {
     e.preventDefault();
     
@@ -2201,7 +2224,6 @@ async function saveFontana(e) {
             last_modified: new Date().toISOString()
         };
         
-        // Validazione
         const validationErrors = validateFontanaData(fontanaData);
         if (validationErrors.length > 0) {
             throw validationErrors[0];
@@ -2211,7 +2233,6 @@ async function saveFontana(e) {
         const operation = id ? 'UPDATE' : 'CREATE';
         
         if (navigator.onLine) {
-            // Online: salva direttamente
             if (id && id.trim() !== '') {
                 savedId = await safeFirebaseOperation(
                     saveFirebaseData,
@@ -2238,7 +2259,6 @@ async function saveFontana(e) {
                 showToast(`Fontana aggiunta con successo (ID: ${savedId})`, 'success');
             }
         } else {
-            // Offline: aggiungi a coda sync
             savedId = id || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             
             await addToSyncQueue(
@@ -2286,7 +2306,6 @@ async function deleteFontana(id) {
         if (navigator.onLine) {
             await deleteFirebaseData('fontane', id);
         } else {
-            // Offline: aggiungi a coda sync
             const fontana = appData.fontane.find(f => f.id == id);
             if (fontana) {
                 await addToSyncQueue('DELETE', 'fontane', fontana, id);
@@ -2314,6 +2333,12 @@ async function loadAdminBeverini() {
     
     tbody.innerHTML = '';
     appData.beverini.forEach(beverino => {
+        
+        let deleteButtonHtml = '';
+        if (currentUserRole === 'admin') {
+            deleteButtonHtml = `<button class="delete-btn" onclick="deleteBeverino('${beverino.id}')">Elimina</button>`;
+        }
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${beverino.id}</td>
@@ -2322,14 +2347,13 @@ async function loadAdminBeverini() {
             <td><span class="item-status status-${beverino.stato}">${getStatusText(beverino.stato)}</span></td>
             <td class="admin-item-actions">
                 <button class="edit-btn" onclick="editBeverino('${beverino.id}')">Modifica</button>
-                <button class="delete-btn" onclick="deleteBeverino('${beverino.id}')">Elimina</button>
+                ${deleteButtonHtml}
             </td>
         `;
         tbody.appendChild(row);
     });
 }
 
-// ✅ MODIFICA A: editBeverino con caricamento campo descrizione
 function editBeverino(id) {
     const beverino = appData.beverini.find(b => b.id == id);
     if (!beverino) return;
@@ -2339,7 +2363,6 @@ function editBeverino(id) {
     document.getElementById('beverino-indirizzo').value = beverino.indirizzo || '';
     document.getElementById('beverino-stato').value = beverino.stato || 'funzionante';
     
-    // ✅ CARICA LA DESCRIZIONE
     document.getElementById('beverino-descrizione').value = beverino.descrizione || ''; 
     
     document.getElementById('beverino-latitudine').value = beverino.latitudine || '';
@@ -2349,7 +2372,6 @@ function editBeverino(id) {
     showAdminTab('beverini-admin');
 }
 
-// ✅ MODIFICA B: saveBeverino con salvataggio campo descrizione e supporto offline
 async function saveBeverino(e) {
     e.preventDefault();
     
@@ -2361,7 +2383,6 @@ async function saveBeverino(e) {
     const longitudine = parseFloat(document.getElementById('beverino-longitudine').value) || 0;
     const immagine = document.getElementById('beverino-immagine').value.trim();
     
-    // ✅ LEGGE LA DESCRIZIONE DAL FORM
     const descrizione = document.getElementById('beverino-descrizione').value.trim();
     
     const beverinoData = {
@@ -2371,7 +2392,6 @@ async function saveBeverino(e) {
         latitudine,
         longitudine,
         immagine,
-        // ✅ INCLUDE LA DESCRIZIONE NEI DATI
         descrizione, 
         last_modified: new Date().toISOString()
     };
@@ -2484,6 +2504,12 @@ async function loadAdminNews() {
     
     tbody.innerHTML = '';
     appData.news.forEach(news => {
+        
+        let deleteButtonHtml = '';
+        if (currentUserRole === 'admin') {
+            deleteButtonHtml = `<button class="delete-btn" onclick="deleteNews('${news.id}')">Elimina</button>`;
+        }
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${news.id}</td>
@@ -2492,7 +2518,7 @@ async function loadAdminNews() {
             <td>${news.categoria}</td>
             <td class="admin-item-actions">
                 <button class="edit-btn" onclick="editNews('${news.id}')">Modifica</button>
-                <button class="delete-btn" onclick="deleteNews('${news.id}')">Elimina</button>
+                ${deleteButtonHtml}
             </td>
         `;
         tbody.appendChild(row);
@@ -2826,7 +2852,6 @@ function importBeverini(data) {
         latitudine: parseFloat(item.Latitudine) || parseFloat(item.latitudine) || 0,
         longitudine: parseFloat(item.Longitudine) || parseFloat(item.longitudine) || 0,
         immagine: item.Immagine || item.immagine || '',
-        // Assumiamo che la descrizione possa essere importata se presente nel file
         descrizione: item.Descrizione || item.descrizione || '', 
         last_modified: new Date().toISOString()
     }));
@@ -2901,7 +2926,7 @@ function downloadTemplate(type) {
             break;
         case 'beverini':
             columns = [
-                'Nome', 'Indirizzo', 'Stato', 'Latitudine', 'Longitudine', 'Immagine', 'Descrizione' // Aggiunta Descrizione per coerenza
+                'Nome', 'Indirizzo', 'Stato', 'Latitudine', 'Longitudine', 'Immagine', 'Descrizione' 
             ];
             filename = 'template_beverini.xlsx';
             sheetName = 'Beverini';
@@ -3435,86 +3460,50 @@ function forceSyncAnalytics() {
         showToast('Sync analytics forzato', 'info');
     }
 }
-// Seconda parte nel blocco successivo
+
 // ============================================
-// GESTIONE TASTO INDIETRO ANDROID (CORRETTO)
+// GESTIONE TASTO INDIETRO E MENU
 // ============================================
 
 // Gestione tasto indietro fisico/software
 function setupBackButtonHandler() {
-    // Unifichiamo la gestione: funziona sia per PWA che per Browser
-    // L'unica differenza è che nella PWA vogliamo "intrappolare" l'utente nell'app
-    // finché non è nella home.
-    
-    // 1. Inseriamo uno stato iniziale fittizio per attivare la history
     window.history.pushState({ page: 'app_root' }, document.title, window.location.href);
 
-    // 2. Ascoltiamo il cambiamento di stato (tasto indietro premuto)
     window.addEventListener('popstate', function(event) {
-        // Tentiamo di gestire la navigazione internamente
         const actionTaken = handleBackNavigation();
 
         if (actionTaken) {
-            // Se abbiamo gestito l'azione (es. chiuso un modale o cambiato schermata),
-            // dobbiamo RIPRISTINARE lo stato nella history, altrimenti al prossimo
-            // "back" l'app si chiuderà perché abbiamo consumato lo stato precedente.
             window.history.pushState({ page: 'app_active' }, document.title, window.location.href);
-        } else {
-            // Se siamo nella Home e non ci sono modali aperti (actionTaken = false),
-            // lasciamo che l'evento popstate faccia il suo corso.
-             if (window.matchMedia('(display-mode: standalone)').matches) {
-                // Se volessimo chiedere conferma/evitare l'uscita automatica,
-                // qui bisognerebbe re-iniettare uno stato, ma in questo caso 
-                // vogliamo permettere l'uscita dopo il doppio tocco.
-             }
         }
     });
 }
-/**
- * Gestisce la logica del tasto indietro.
- * @returns {boolean} true se l'azione è stata gestita internamente (non uscire), false se si deve uscire.
- */
+
 function handleBackNavigation() {
-    console.log('Tasto indietro premuto - Stato navigazione:', screenHistory);
-    
     // 1. Controllo Modali/Overlay (Priorità massima)
-    
-    // Auth Admin
     const adminAuth = document.getElementById('admin-auth');
     if (adminAuth && adminAuth.style.display === 'flex') {
         closeAdminAuth();
         return true;
     }
 
-    // Pannello Admin
     const adminPanel = document.getElementById('admin-panel');
     if (adminPanel && adminPanel.style.display === 'flex') {
         closeAdminPanel();
         return true;
     }
     
-    // Modale Navigazione
     const navModal = document.getElementById('navigation-modal');
     if (navModal && navModal.style.display === 'flex') {
         closeNavigationModal();
         return true;
     }
     
-    // Modale Info
     const infoModal = document.getElementById('info-modal');
     if (infoModal && infoModal.style.display === 'flex') {
         closeInfoModal();
         return true;
     }
     
-    // Modale Istruzioni Installazione (se presente)
-    const installModal = document.querySelector('.install-instructions');
-    if (installModal && installModal.style.display === 'flex') {
-        installModal.style.display = 'none'; // Assumendo che ci sia una funzione o stile per chiuderlo
-        return true;
-    }
-    
-    // Risultati ricerca mappa (se visibili)
     const searchResults = document.getElementById('map-search-results');
     if (searchResults && searchResults.style.display === 'block') {
         searchResults.style.display = 'none';
@@ -3522,43 +3511,96 @@ function handleBackNavigation() {
     }
 
     // 2. Controllo Navigazione Schermate
-    
     const currentScreen = screenHistory[screenHistory.length - 1]; 
-    
-    // Se non siamo nella home, torna indietro nella cronologia schermate
     if (currentScreen !== 'home-screen') {
         goBack();
         return true;
     } 
 
-    // 3. Siamo nella Home e nessun modale è aperto -> Gestione Uscita (Doppio Tocco)
-    
+    // 3. Gestione Uscita
     if (backPressTimer) {
-        // Doppio tocco entro il timeout: Esegui l'uscita
         clearTimeout(backPressTimer);
         backPressTimer = null;
-        // Permetti al popstate handler di uscire (ritorna false)
         showToast('Uscita dall\'applicazione...', 'info', 1000); 
         return false; 
     } else {
-        // Prima pressione: mostra toast di avviso e imposta il timer
         showToast('Premi di nuovo per uscire', 'warning', EXIT_TOAST_TIMEOUT);
-        
         backPressTimer = setTimeout(() => {
             backPressTimer = null;
-            // Nascondi il toast se il timer scade.
             const toast = document.getElementById('toast');
             if (toast) toast.classList.remove('show');
         }, EXIT_TOAST_TIMEOUT);
-        
-        // Dopo la prima pressione, re-inseriamo lo stato nella history
-        // per intercettare la seconda pressione senza uscire.
-        return true; // Azione gestita, non uscire ancora.
+        return true;
     }
 }
 
+// --- FUNZIONI MENU A TENDINA E SEGNALAZIONI ---
+
+// Apre/Chiude il menu a puntini
+function toggleMenuModal() {
+    const modal = document.getElementById('top-menu-modal');
+    // Se è nascosto o non ha stile display, lo mostra, altrimenti lo nasconde
+    if (!modal.style.display || modal.style.display === 'none') {
+        modal.style.display = 'flex';
+    } else {
+        modal.style.display = 'none';
+    }
+}
+
+// Chiude il menu se clicchi sulla parte scura (fuori dal box)
+function closeMenuModal(event) {
+    if (event.target.id === 'top-menu-modal') {
+        document.getElementById('top-menu-modal').style.display = 'none';
+    }
+}
+
+// Apre la schermata rossa di segnalazione
+function openReportScreen() {
+    document.getElementById('top-menu-modal').style.display = 'none'; // Chiude menu
+    showScreen('segnalazioni-screen'); // Mostra schermata
+}
+
+// Gestisce il click su "Area Riservata" (CON CONTROLLO SICUREZZA)
+function goToAdmin() {
+    document.getElementById('top-menu-modal').style.display = 'none';
+    
+    // CORREZIONE SICUREZZA:
+    // Chiama openAdminPanel() che chiede la password se non sei loggato.
+    if(typeof openAdminPanel === 'function') {
+        openAdminPanel(); 
+    } else {
+        // Fallback di sicurezza
+        showAdminAuth();
+    }
+}
+
+// FUNZIONE CHE PREPARA L'EMAIL
+function inviaSegnalazione(event) {
+    event.preventDefault();
+
+    const tipo = document.getElementById('report-type').value;
+    const descrizione = document.getElementById('report-desc').value;
+    
+    // INDIRIZZO EMAIL UFFICIALE
+    const emailDestinatario = "fontane.beverini@abc.napoli.it"; 
+    
+    const oggetto = encodeURIComponent(`Segnalazione App ABC: ${tipo}`);
+    
+    // Costruiamo il corpo della mail in modo ordinato
+    const corpo = encodeURIComponent(
+        `Gentile Assistenza ABC Napoli,\n\n` +
+        `Vorrei segnalare il seguente problema:\n` +
+        `TIPO: ${tipo}\n\n` +
+        `DESCRIZIONE E POSIZIONE:\n${descrizione}\n\n` +
+        `---\nInviato dall'App ABC Napoli F&B`
+    );
+
+    // Apre l'app di posta predefinita
+    window.location.href = `mailto:${emailDestinatario}?subject=${oggetto}&body=${corpo}`;
+}
+
 // ============================================
-// Initialize App (MODIFICATO)
+// Initialize App
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -3567,10 +3609,8 @@ document.addEventListener('DOMContentLoaded', function() {
     showScreen('home-screen');
     handleUrlParameters();
     
-    // ✅ Inizializza gestione tasto indietro (Nuova funzione corretta)
     setupBackButtonHandler();
     
-    // ✅ Registra Service Worker (versione corretta)
     if ('serviceWorker' in navigator) {
         setTimeout(() => {
             registerServiceWorker();
@@ -3613,15 +3653,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('online', checkOnlineStatus);
     window.addEventListener('offline', checkOnlineStatus);
     
-    document.addEventListener('error', function(e) {
-        if (e.target.tagName === 'IMG') {
-            // Logica di fallback generica, lasciamo che i singoli template di rendering
-            // gestiscano il loro specifico fallback tramite onerror se necessario.
-            // L'unico fallback hardcoded qui è stato rimosso in favore dei template.
-            // e.target.src = './images/sfondo-home.jpg';
-        }
-    }, true);
-    
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && document.getElementById('admin-panel').style.display === 'flex') {
             closeAdminPanel();
@@ -3642,33 +3673,25 @@ document.addEventListener('DOMContentLoaded', function() {
     
     logActivity('Applicazione avviata');
 });
-// ===== SPLASH SCREEN MANAGEMENT (VERSIONE CON PROGRESS BAR) =====
 
+// SPLASH SCREEN MANAGEMENT
 let splashProgressInterval;
 let splashProgress = 0;
-let splashMinTime = 1500; // Mostra per almeno 1.5 secondi
+let splashMinTime = 1500;
 let splashStartTime = Date.now();
 
-// Funzione per nascondere lo splash screen
 function hideSplashScreen() {
     clearInterval(splashProgressInterval);
-    
     const splashScreen = document.getElementById('splash-screen');
     if (splashScreen) {
         splashScreen.classList.add('hidden');
-        
-        // Rimuovi completamente dopo l'animazione
         setTimeout(() => {
             splashScreen.style.display = 'none';
-            console.log('✅ Splash screen nascosto');
-            
-            // Inizializza l'app dopo che lo splash screen è nascosto
             initializeAppAfterSplash();
         }, 500);
     }
 }
 
-// Funzione per mostrare lo splash screen
 function showSplashScreen() {
     const splashScreen = document.getElementById('splash-screen');
     if (splashScreen) {
@@ -3676,298 +3699,55 @@ function showSplashScreen() {
         splashScreen.classList.remove('hidden');
         splashScreen.style.opacity = '1';
         splashScreen.style.visibility = 'visible';
-        
-        // Resetta il progresso
         splashProgress = 0;
         splashStartTime = Date.now();
-        updateSplashProgress(10); // Inizia subito con 10%
+        updateSplashProgress(10);
     }
 }
 
-// Aggiorna la barra di progresso
 function updateSplashProgress(increment) {
     splashProgress += increment;
     if (splashProgress > 100) splashProgress = 100;
-    
     const progressBar = document.querySelector('.splash-progress-bar');
     if (progressBar) {
         progressBar.style.width = splashProgress + '%';
     }
-    
-    // Aggiorna il testo
-    const splashText = document.querySelector('.splash-text');
-    if (splashText) {
-        if (splashProgress < 30) {
-            splashText.textContent = 'Caricamento iniziale...';
-        } else if (splashProgress < 60) {
-            splashText.textContent = 'Caricamento dati...';
-        } else if (splashProgress < 90) {
-            splashText.textContent = 'Preparazione interfaccia...';
-        } else {
-            splashText.textContent = 'Completamento...';
-        }
-    }
 }
 
-// Inizializza l'app dopo lo splash screen
 function initializeAppAfterSplash() {
     console.log('🚀 App inizializzata dopo splash screen');
-    
-    // Contenuto corretto (senza setTimeout esterno)
-    if (typeof loadAllData === 'function') {
-        loadAllData();
-    }
-    
-    // Controlla se c'è un parametro admin nell'URL
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('admin') && urlParams.get('admin') === 'true') {
         setTimeout(() => {
-            openAdminAuth();
+            openAdminPanel(); // CORREZIONE: Usa openAdminPanel invece di showAdminAuth diretto
         }, 300);
     }
-    
-    // Se ci sono altri parametri, gestiscili
     if (urlParams.has('screen')) {
         const screen = urlParams.get('screen');
         setTimeout(() => {
             showScreen(screen + '-screen');
         }, 400);
     }
-    
-    // Forza l'aggiornamento dell'ultima schermata attiva nel caso in cui fosse 'home-screen'
-    if (window.screenHistory && window.screenHistory[window.screenHistory.length - 1] === 'home-screen') {
-        document.getElementById('home-screen').style.display = 'flex';
-        setTimeout(() => {
-            document.getElementById('home-screen').classList.add('active');
-        }, 10);
-    }
 }
 
-// Gestione del caricamento della pagina
 window.addEventListener('load', function() {
-    console.log('📄 Pagina completamente caricata');
-    
-    // Inizia la progress bar
     splashProgressInterval = setInterval(() => {
         const elapsed = Date.now() - splashStartTime;
         const progressNeeded = Math.min(90, Math.floor((elapsed / splashMinTime) * 100));
-        
         if (progressNeeded > splashProgress) {
             updateSplashProgress(progressNeeded - splashProgress);
         }
-        
-        // Se è passato il tempo minimo e abbiamo raggiunto il 90%, completa
         if (elapsed >= splashMinTime && splashProgress >= 90) {
-            updateSplashProgress(10); // Completa al 100%
+            updateSplashProgress(10);
             clearInterval(splashProgressInterval);
             hideSplashScreen();
         }
     }, 100);
     
-    // Fallback: nascondi dopo 5 secondi massimo (Timeout aumentato per stabilità)
     setTimeout(() => {
         if (document.getElementById('splash-screen') && 
             !document.getElementById('splash-screen').classList.contains('hidden')) {
-            console.log('⏱️ Timeout splash screen (5s)');
             hideSplashScreen();
         }
     }, 5000);
 });
-
-// Nascondi lo splash screen anche se c'è un errore di caricamento
-window.addEventListener('error', function(e) {
-    console.error('❌ Errore durante il caricamento:', e.message);
-    
-    const splashText = document.querySelector('.splash-text');
-    if (splashText) {
-        splashText.textContent = 'Errore di caricamento, riprovare...';
-        splashText.style.color = '#ff6b6b';
-    }
-    
-    setTimeout(() => {
-        hideSplashScreen();
-    }, 1000);
-});
-
-// Gestisci il caso in cui la pagina viene caricata dalla cache
-if (document.readyState === 'complete') {
-    console.log('⚡ Pagina già caricata dalla cache');
-    
-    // Mostra comunque lo splash screen brevemente per coerenza
-    showSplashScreen();
-    setTimeout(() => {
-        updateSplashProgress(100);
-        setTimeout(hideSplashScreen, 500);
-    }, 800);
-}
-
-// Verifica quando la pagina è diventata interattiva
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 DOM completamente caricato e parsato');
-    updateSplashProgress(20); // Aggiorna progresso
-});
-
-// Monitora il caricamento delle risorse
-window.addEventListener('DOMContentLoaded', function() {
-    // Conta le risorse ancora da caricare
-    const resources = document.querySelectorAll('img, script, link[rel="stylesheet"]');
-    let loadedResources = 0;
-    const totalResources = resources.length;
-    
-    resources.forEach(resource => {
-        if (resource.complete || resource.readyState === 'complete') {
-            loadedResources++;
-        } else {
-            resource.addEventListener('load', function() {
-                loadedResources++;
-                const progress = Math.min(70, 20 + (loadedResources / totalResources) * 50);
-                updateSplashProgress(progress - splashProgress);
-            });
-            
-            resource.addEventListener('error', function() {
-                loadedResources++;
-                // Non bloccare per errori di risorse
-            });
-        }
-    });
-    
-    // Se tutte le risorse sono già caricate
-    if (loadedResources === totalResources) {
-        updateSplashProgress(70);
-    }
-});
-
-// ===== GESTIONE BACK BUTTON PER SPLASH =====
-
-// Impedisci il back button quando lo splash screen è visibile
-let splashVisible = true;
-
-// Sovrascrivi la funzione goBack per gestire lo splash screen
-const originalGoBack = window.goBack;
-if (originalGoBack) {
-    window.goBack = function() {
-        if (!splashVisible) {
-            originalGoBack();
-        } else {
-            console.log('🔙 Back button bloccato durante splash screen');
-        }
-    };
-}
-
-// Aggiorna lo stato quando lo splash screen è nascosto
-const splashScreen = document.getElementById('splash-screen');
-if (splashScreen) {
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.attributeName === 'class') {
-                if (splashScreen.classList.contains('hidden')) {
-                    splashVisible = false;
-                    console.log('🎯 Splash screen nascosto, back button abilitato');
-                } else {
-                    splashVisible = true;
-                }
-            }
-        });
-    });
-    
-    observer.observe(splashScreen, { attributes: true });
-}
-
-// Pulsante di emergenza per saltare lo splash screen (debug)
-document.addEventListener('keydown', function(e) {
-    // Premendo ESC durante lo splash screen, lo salti
-    if (e.key === 'Escape' && splashVisible) {
-        console.log('🚨 Splash screen saltato con ESC');
-        hideSplashScreen();
-    }
-});
-
-// Touch per saltare splash screen (doppio tap)
-let lastTap = 0;
-document.addEventListener('touchend', function(e) {
-    const currentTime = new Date().getTime();
-    const tapLength = currentTime - lastTap;
-    
-    if (tapLength < 500 && tapLength > 0 && splashVisible) {
-        // Doppio tap rilevato
-        console.log('👆 Doppio tap per saltare splash screen');
-        hideSplashScreen();
-        e.preventDefault();
-    }
-    
-    lastTap = currentTime;
-});
-
-console.log('✨ Sistema splash screen inizializzato');
-// ==========================================
-// NUOVE FUNZIONI: MENU E SEGNALAZIONI EMAIL
-// ==========================================
-
-// Apre/Chiude il menu a tendina (3 puntini)
-function toggleMenuModal() {
-    const modal = document.getElementById('top-menu-modal');
-    // Se è nascosto o non ha stile display, lo mostra, altrimenti lo nasconde
-    if (!modal.style.display || modal.style.display === 'none') {
-        modal.style.display = 'flex';
-    } else {
-        modal.style.display = 'none';
-    }
-}
-
-// Chiude il menu se clicchi sulla parte scura (fuori dal box)
-function closeMenuModal(event) {
-    if (event.target.id === 'top-menu-modal') {
-        document.getElementById('top-menu-modal').style.display = 'none';
-    }
-}
-
-// Apre la schermata rossa di segnalazione
-function openReportScreen() {
-    document.getElementById('top-menu-modal').style.display = 'none'; // Chiude menu
-    showScreen('segnalazioni-screen'); // Mostra schermata
-}
-
-// --- VERSIONE CORRETTA E SICURA ---
-function goToAdmin() {
-    // 1. Chiude il menu a tendina
-    const menu = document.getElementById('top-menu-modal');
-    if (menu) menu.style.display = 'none';
-    
-    // 2. Chiama la funzione che controlla la password
-    if (typeof openAdminPanel === 'function') {
-        openAdminPanel(); 
-    } else {
-        // Fallback di sicurezza: se qualcosa non va, mostra comunque il login
-        console.warn("Funzione openAdminPanel non trovata, apro login manualmente");
-        const authModal = document.getElementById('admin-auth');
-        if (authModal) authModal.style.display = 'flex';
-    }
-}
-
-// FUNZIONE CHE PREPARA L'EMAIL
-function inviaSegnalazione(event) {
-    event.preventDefault();
-
-    const tipo = document.getElementById('report-type').value;
-    const descrizione = document.getElementById('report-desc').value;
-    
-    // INDIRIZZO EMAIL UFFICIALE
-    const emailDestinatario = "fontane.beverini@abc.napoli.it"; 
-    
-    const oggetto = encodeURIComponent(`Segnalazione App ABC: ${tipo}`);
-    
-    // Costruiamo il corpo della mail in modo ordinato
-    const corpo = encodeURIComponent(
-        `Gentile Assistenza ABC Napoli,\n\n` +
-        `Vorrei segnalare il seguente problema:\n` +
-        `TIPO: ${tipo}\n\n` +
-        `DESCRIZIONE E POSIZIONE:\n${descrizione}\n\n` +
-        `---\nInviato dall'App ABC Napoli F&B`
-    );
-
-    // Apre l'app di posta predefinita
-    window.location.href = `mailto:${emailDestinatario}?subject=${oggetto}&body=${corpo}`;
-    
-    // Opzionale: svuota il campo descrizione dopo l'invio
-    // document.getElementById('report-desc').value = ''; 
-}
