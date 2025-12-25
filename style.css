@@ -217,7 +217,7 @@ body {
     align-items: center;
 
     /* SPAZIO SUPERIORE: Se 200px è poco, prova 250px qui sotto */
-    padding: 120px 20px 30px 20px !important; 
+    padding: 60px 20px 30px 20px !important; 
 
     /* --- ALTRE PROPRIETÀ --- */
     flex: 1;
