@@ -200,7 +200,7 @@ body {
 
 /* ✅ MODIFICA SFONDO: Versione Mobile di default */
 #home-screen {
-    /* --- SFONDO (Resta uguale) --- */
+    /* --- SFONDO --- */
     background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)),
                 url('./images/sfondo-home-mobile.jpg');
     background-size: cover;
@@ -211,19 +211,15 @@ body {
     display: flex;
     flex-direction: column;
 
-    /* MODIFICA FONDAMENTALE 1: */
-    /* "justify-content: center" metteva tutto al centro. */
-    /* "flex-start" dice di iniziare dall'inizio (dall'alto). */
-    justify-content: flex-start;
+    /* AGGIUNTO !important: Costringe l'allineamento in alto */
+    justify-content: flex-start !important; 
     
     align-items: center;
 
-    /* MODIFICA FONDAMENTALE 2: */
-    /* Il primo numero (120px) è lo spazio sopra. */
-    /* Aumentandolo, spingi il logo verso il basso per allinearlo visivamente al tasto impostazioni */
-    padding: 200px 20px 30px 20px;
+    /* SPAZIO SUPERIORE: Se 200px è poco, prova 250px qui sotto */
+    padding: 250px 20px 30px 20px !important; 
 
-    /* --- ALTRE PROPRIETÀ (Restano uguali) --- */
+    /* --- ALTRE PROPRIETÀ --- */
     flex: 1;
     min-height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px)); 
 }
