@@ -101,34 +101,24 @@ self.addEventListener('activate', event => {
 // Fetch Strategy
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  
   const url = new URL(event.request.url);
   
   // Ignora schemi non supportati
   if (url.protocol.startsWith('chrome') || url.protocol.startsWith('about') || url.protocol.startsWith('data')) return;
 
-  // Ignora API esterne (Firebase, Analytics, ecc.)
-  if (url.href.includes('firebase') ||
-      url.href.includes('nominatim') ||
-      url.href.includes('gstatic.com') ||
-      url.href.includes('googleapis.com') ||
-      url.href.includes('/analytics') ||
-      url.href.includes('/firestore')) {
+  // Ignora chiamate API/Firebase/Analytics
+  if (url.href.includes('firebase') || url.href.includes('firestore') || url.href.includes('googleapis')) {
     return fetch(event.request);
   }
 
-  // 1. GESTIONE IMMAGINI (Logica Cache on Demand)
-  // Include anche le tile della mappa e i marker se sono richiesti come immagini
+  // GESTIONE IMMAGINI
   if (event.request.destination === 'image') {
     event.respondWith(
       caches.match(event.request).then(cachedResponse => {
-        // A. Se è in cache, usala subito
         if (cachedResponse) return cachedResponse;
 
-        // B. Se non è in cache, prova a scaricarla
         return fetch(event.request).then(networkResponse => {
           if (networkResponse && networkResponse.ok) {
-             // C. Se scaricata con successo, salvala in cache per il futuro
              const responseToCache = networkResponse.clone();
              caches.open(DYNAMIC_CACHE).then(cache => {
                cache.put(event.request, responseToCache);
@@ -136,9 +126,8 @@ self.addEventListener('fetch', event => {
           }
           return networkResponse;
         }).catch(() => {
-          // D. SE SEI OFFLINE E NON È IN CACHE:
-          // Ritorniamo un errore (404) invece di un'immagine generica.
-          // Questo permette ad app.js di usare l'immagine di fallback specifica (Fontana vs Beverino).
+          // OFFLINE E NON IN CACHE: RITORNA ERRORE (404)
+          // Così app.js gestisce il fallback visivo
           return new Response(null, { status: 404, statusText: 'Not found' });
         });
       })
@@ -146,21 +135,15 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 2. GESTIONE ALTRE RISORSE (Cache First standard)
-  // Per HTML, CSS, JS, ecc.
+  // ALTRE RISORSE (HTML, CSS, JS) - Cache First Standard
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) return cachedResponse;
-      
-      return fetch(event.request).then(response => {
-          // Cache dinamica opzionale per altre risorse
-          return response;
-      }).catch(() => {
-         // Fallback per HTML (se apri una pagina offline)
-         if (event.request.headers.get('accept').includes('text/html')) {
-            return caches.match('./index.html');
-         }
-      });
+        if (cachedResponse) return cachedResponse;
+        return fetch(event.request).catch(() => {
+            if (event.request.headers.get('accept').includes('text/html')) {
+                return caches.match('./index.html');
+            }
+        });
     })
   );
 });

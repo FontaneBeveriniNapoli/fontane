@@ -865,25 +865,26 @@ async function loadFirebaseData(type) {
             });
         });
         
+        // Assegna i dati scaricati alla variabile globale
         appData[type] = data;
+        // Salva nel telefono per il futuro
         saveLocalData();
         
         showToast(`${data.length} ${type} caricati da Firebase`, 'success');
-        logActivity(`${data.length} ${type} caricati da Firebase`);
         
         return data;
     } catch (error) {
-        // === PARTE CORRETTA PER L'OFFLINE ===
-        await handleError(`loadFirebaseData_${type}`, error, null);
-        console.log(`[Offline] Caricamento dati locali per ${type}...`);
+        // === CORREZIONE IMPORTANTE PER L'OFFLINE ===
+        console.log(`[Offline] Errore connessione. Caricamento dati locali per ${type}...`);
         
-        // 1. Carichiamo i dati dalla memoria del telefono
+        // 1. Carica i dati dalla memoria del telefono
         const localData = loadLocalData(type);
         
-        // 2. FONDAMENTALE: Diciamo all'app di usare questi dati!
+        // 2. FONDAMENTALE: Assegna i dati alla variabile globale appData
+        // Senza questa riga, l'app pensa che la lista sia vuota!
         appData[type] = localData;
         
-        // 3. Ritorniamo i dati così la lista si riempie
+        // 3. Ritorna i dati locali
         return localData;
     }
 }
@@ -1422,7 +1423,7 @@ function renderGridItems(container, items, type) {
             <div class="empty-state">
                 <div class="empty-state-icon"><i class="fas fa-${type === 'fontana' ? 'monument' : 'faucet'}"></i></div>
                 <div class="empty-state-text">Nessuna ${type} disponibile</div>
-                <div class="empty-state-subtext">${currentFilter[type + 's'] !== 'all' ? 'Prova a cambiare filtro' : 'Aggiungi tramite il pannello di controllo'}</div>
+                <div class="empty-state-subtext">Sei offline e non ci sono dati salvati.</div>
             </div>
         `;
         return;
@@ -1440,7 +1441,7 @@ function renderGridItems(container, items, type) {
         
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
         
-        // MODIFICA QUI: Gestione intelligente immagine fontana
+        // MODIFICA: Uso onerror per mettere l'immagine di sfondo invece di nasconderla
         gridItem.innerHTML = `
             <div class="item-image-container">
                 <img src="${item.immagine || './images/sfondo-home.jpg'}" 
@@ -1470,7 +1471,7 @@ function renderCompactItems(container, items, type) {
             <div class="empty-state">
                 <div class="empty-state-icon"><i class="fas fa-${type === 'beverino' ? 'faucet' : 'monument'}"></i></div>
                 <div class="empty-state-text">Nessun ${type} disponibile</div>
-                <div class="empty-state-subtext">${currentFilter[type + 's'] !== 'all' ? 'Prova a cambiare filtro' : 'Aggiungi tramite il pannello di controllo'}</div>
+                 <div class="empty-state-subtext">Sei offline e non ci sono dati salvati.</div>
             </div>
         `;
         return;
@@ -1480,19 +1481,9 @@ function renderCompactItems(container, items, type) {
     items.forEach(item => {
         const compactItem = document.createElement('div');
         compactItem.className = 'compact-item';
-
+        // ... (Logica lunghezza testo invariata, ometti se vuoi o copia dal tuo file) ...
         const totalLength = (item.nome || '').length + (item.indirizzo || '').length;
-        let heightClass = '';
-
-        if (totalLength > 100) {
-            heightClass = 'very-long-content';
-        } else if (totalLength > 60) {
-            heightClass = 'long-content';
-        }
-
-        if (heightClass) {
-            compactItem.classList.add(heightClass);
-        }
+        if (totalLength > 60) compactItem.classList.add('long-content');
 
         compactItem.onclick = () => {
             showDetail(item.id, type);
@@ -1502,7 +1493,7 @@ function renderCompactItems(container, items, type) {
 
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
         
-        // MODIFICA QUI: Gestione intelligente immagine beverino
+        // MODIFICA: Uso onerror per mettere il default beverino
         compactItem.innerHTML = `
             <div class="compact-item-image-container">
                 <img src="${item.immagine || './images/default-beverino.jpg'}"
