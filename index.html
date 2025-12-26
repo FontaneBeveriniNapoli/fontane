@@ -333,10 +333,19 @@
                     </div>
                 </form>
 
+                <div class="admin-table-actions" style="margin-bottom: 10px; display: flex; justify-content: flex-end;">
+                    <button id="btn-delete-sel-fontane" class="delete-selected-btn" onclick="deleteSelectedItems('fontane')" disabled>
+                        <i class="fas fa-trash"></i> Elimina Selezionati (0)
+                    </button>
+                </div>
+
                 <div class="admin-table-container">
                     <table class="admin-table" id="fontane-table">
                         <thead>
                             <tr>
+                                <th style="width: 40px; text-align: center;">
+                                    <input type="checkbox" onchange="toggleSelectAll('fontane', this)">
+                                </th>
                                 <th>ID</th>
                                 <th>Nome</th>
                                 <th>Indirizzo</th>
@@ -427,10 +436,19 @@
                     </div>
                 </form>
 
+                <div class="admin-table-actions" style="margin-bottom: 10px; display: flex; justify-content: flex-end;">
+                    <button id="btn-delete-sel-beverini" class="delete-selected-btn" onclick="deleteSelectedItems('beverini')" disabled>
+                        <i class="fas fa-trash"></i> Elimina Selezionati (0)
+                    </button>
+                </div>
+
                 <div class="admin-table-container">
                     <table class="admin-table" id="beverini-table">
                         <thead>
                             <tr>
+                                <th style="width: 40px; text-align: center;">
+                                    <input type="checkbox" onchange="toggleSelectAll('beverini', this)">
+                                </th>
                                 <th>ID</th>
                                 <th>Nome</th>
                                 <th>Indirizzo</th>
@@ -490,10 +508,19 @@
                     </div>
                 </form>
 
+                <div class="admin-table-actions" style="margin-bottom: 10px; display: flex; justify-content: flex-end;">
+                    <button id="btn-delete-sel-news" class="delete-selected-btn" onclick="deleteSelectedItems('news')" disabled>
+                        <i class="fas fa-trash"></i> Elimina Selezionati (0)
+                    </button>
+                </div>
+
                 <div class="admin-table-container">
                     <table class="admin-table" id="news-table">
                         <thead>
                             <tr>
+                                <th style="width: 40px; text-align: center;">
+                                    <input type="checkbox" onchange="toggleSelectAll('news', this)">
+                                </th>
                                 <th>ID</th>
                                 <th>Titolo</th>
                                 <th>Data</th>

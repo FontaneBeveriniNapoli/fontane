@@ -2191,14 +2191,28 @@ async function loadAdminFontane() {
     if (!tbody) return;
     
     tbody.innerHTML = '';
-    appData.fontane.forEach(fontana => {
-        // NUOVO: Mostra pulsante elimina solo se admin
+    
+    // Ordina per ID decrescente (i più recenti in alto)
+    const sortedFontane = [...appData.fontane].sort((a, b) => {
+        const idA = parseInt(a.id.replace(/\D/g, '')) || 0;
+        const idB = parseInt(b.id.replace(/\D/g, '')) || 0;
+        return idB - idA; 
+    });
+
+    sortedFontane.forEach(fontana => {
+        // Pulsante singolo elimina (solo Admin)
         const deleteButton = currentUserRole === 'admin' 
             ? `<button class="delete-btn" onclick="deleteFontana('${fontana.id}')">Elimina</button>` 
             : '';
+            
+        // NUOVO: Checkbox selezione multipla (SOLO ADMIN)
+        const checkboxHtml = currentUserRole === 'admin'
+            ? `<input type="checkbox" class="select-item-fontane" value="${fontana.id}" onchange="updateDeleteButtonState('fontane')">`
+            : ''; 
 
         const row = document.createElement('tr');
         row.innerHTML = `
+            <td style="text-align: center;">${checkboxHtml}</td>
             <td>${fontana.id}</td>
             <td>${fontana.nome}</td>
             <td>${fontana.indirizzo}</td>
@@ -2210,6 +2224,9 @@ async function loadAdminFontane() {
         `;
         tbody.appendChild(row);
     });
+    
+    // Resetta lo stato del pulsante elimina multiplo
+    updateDeleteButtonState('fontane');
 }
 
 function editFontana(id) {
@@ -2377,14 +2394,26 @@ async function loadAdminBeverini() {
     if (!tbody) return;
     
     tbody.innerHTML = '';
-    appData.beverini.forEach(beverino => {
-        // NUOVO: Mostra pulsante elimina solo se admin
+    
+    const sortedBeverini = [...appData.beverini].sort((a, b) => {
+        const idA = parseInt(a.id.replace(/\D/g, '')) || 0;
+        const idB = parseInt(b.id.replace(/\D/g, '')) || 0;
+        return idB - idA;
+    });
+
+    sortedBeverini.forEach(beverino => {
         const deleteButton = currentUserRole === 'admin' 
             ? `<button class="delete-btn" onclick="deleteBeverino('${beverino.id}')">Elimina</button>` 
             : '';
 
+        // Checkbox SOLO ADMIN
+        const checkboxHtml = currentUserRole === 'admin'
+            ? `<input type="checkbox" class="select-item-beverini" value="${beverino.id}" onchange="updateDeleteButtonState('beverini')">`
+            : '';
+
         const row = document.createElement('tr');
         row.innerHTML = `
+            <td style="text-align: center;">${checkboxHtml}</td>
             <td>${beverino.id}</td>
             <td>${beverino.nome}</td>
             <td>${beverino.indirizzo}</td>
@@ -2396,6 +2425,7 @@ async function loadAdminBeverini() {
         `;
         tbody.appendChild(row);
     });
+    updateDeleteButtonState('beverini');
 }
 
 // ✅ MODIFICA A: editBeverino con caricamento campo descrizione
@@ -2558,14 +2588,23 @@ async function loadAdminNews() {
     if (!tbody) return;
     
     tbody.innerHTML = '';
-    appData.news.forEach(news => {
-        // NUOVO: Mostra pulsante elimina solo se admin
+    
+    // Ordina news per data (più recenti in alto)
+    const sortedNews = [...appData.news].sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    sortedNews.forEach(news => {
         const deleteButton = currentUserRole === 'admin' 
             ? `<button class="delete-btn" onclick="deleteNews('${news.id}')">Elimina</button>` 
             : '';
 
+        // Checkbox SOLO ADMIN
+        const checkboxHtml = currentUserRole === 'admin'
+            ? `<input type="checkbox" class="select-item-news" value="${news.id}" onchange="updateDeleteButtonState('news')">`
+            : '';
+
         const row = document.createElement('tr');
         row.innerHTML = `
+            <td style="text-align: center;">${checkboxHtml}</td>
             <td>${news.id}</td>
             <td>${news.titolo}</td>
             <td>${formatDate(news.data)}</td>
@@ -2577,6 +2616,7 @@ async function loadAdminNews() {
         `;
         tbody.appendChild(row);
     });
+    updateDeleteButtonState('news');
 }
 
 function editNews(id) {
@@ -4090,4 +4130,132 @@ function openCreditsScreen() {
     
     // 3. Scrolla in alto per sicurezza
     window.scrollTo(0, 0);
+}
+// ==========================================
+// GESTIONE ELIMINAZIONE MULTIPLA (BULK DELETE)
+// ==========================================
+
+// 1. Funzione per selezionare/deselezionare tutte le righe
+function toggleSelectAll(type, source) {
+    const checkboxes = document.querySelectorAll(`.select-item-${type}`);
+    checkboxes.forEach(cb => {
+        cb.checked = source.checked;
+    });
+    updateDeleteButtonState(type);
+}
+
+// 2. Funzione per aggiornare lo stato del pulsante "Elimina" (Attivo/Disattivo)
+function updateDeleteButtonState(type) {
+    const checkboxes = document.querySelectorAll(`.select-item-${type}:checked`);
+    const btn = document.getElementById(`btn-delete-sel-${type}`);
+    
+    if (btn) {
+        const count = checkboxes.length;
+        
+        // Se non sei admin, il pulsante rimane nascosto/disabilitato dalla logica HTML, 
+        // ma qui lo forziamo per sicurezza
+        if (currentUserRole !== 'admin') {
+            btn.disabled = true;
+            return;
+        }
+
+        btn.disabled = count === 0;
+        btn.innerHTML = `<i class="fas fa-trash"></i> Elimina Selezionati (${count})`;
+        
+        if (count > 0) {
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        } else {
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+        }
+    }
+}
+
+// 3. Funzione Principale: Esegue l'eliminazione
+async function deleteSelectedItems(type) {
+    // --- BLOCCO DI SICUREZZA ---
+    if (currentUserRole !== 'admin') {
+        showToast('ERRORE: Solo l\'Amministratore può eliminare elementi.', 'error');
+        return;
+    }
+    // ---------------------------
+
+    const checkboxes = document.querySelectorAll(`.select-item-${type}:checked`);
+    const idsToDelete = Array.from(checkboxes).map(cb => cb.value);
+
+    if (idsToDelete.length === 0) return;
+
+    if (!confirm(`ATTENZIONE: Stai per eliminare ${idsToDelete.length} elementi.\nQuesta azione è irreversibile.\nProcedere?`)) {
+        return;
+    }
+
+    showToast(`Eliminazione di ${idsToDelete.length} elementi in corso...`, 'info');
+    
+    // Disabilita il pulsante per evitare doppi click
+    const btn = document.getElementById(`btn-delete-sel-${type}`);
+    if(btn) btn.disabled = true;
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const id of idsToDelete) {
+        try {
+            // Elimina effettivamente i dati (Online o Offline queue)
+            if (navigator.onLine) {
+                await deleteFirebaseData(type, id);
+            } else {
+                // Gestione Offline
+                let item;
+                if (type === 'fontane') item = appData.fontane.find(f => f.id == id);
+                else if (type === 'beverini') item = appData.beverini.find(b => b.id == id);
+                else if (type === 'news') item = appData.news.find(n => n.id == id);
+
+                if (item) {
+                    await addToSyncQueue('DELETE', type, item, id);
+                }
+            }
+
+            // Aggiorna l'array locale in memoria
+            if (type === 'fontane') appData.fontane = appData.fontane.filter(f => f.id != id);
+            else if (type === 'beverini') appData.beverini = appData.beverini.filter(b => b.id != id);
+            else if (type === 'news') appData.news = appData.news.filter(n => n.id != id);
+
+            successCount++;
+        } catch (error) {
+            console.error(`Errore eliminazione ID ${id}:`, error);
+            failCount++;
+        }
+    }
+
+    // Salva i cambiamenti nel LocalStorage
+    saveLocalData();
+    
+    // Ricarica la tabella specifica per vedere i cambiamenti
+    if (type === 'fontane') {
+        loadAdminFontane(); // Ricarica tabella admin
+        loadFontane();      // Ricarica vista utente
+    } else if (type === 'beverini') {
+        loadAdminBeverini();
+        loadBeverini();
+    } else if (type === 'news') {
+        loadAdminNews();
+        loadNews();
+    }
+    
+    // Aggiorna i contatori nella dashboard
+    if (typeof updateDashboardStats === 'function') {
+        updateDashboardStats();
+    }
+
+    // Resetta la checkbox "Seleziona Tutti" nell'intestazione
+    const selectAllCb = document.querySelector(`input[onchange="toggleSelectAll('${type}', this)"]`);
+    if(selectAllCb) selectAllCb.checked = false;
+
+    // Feedback finale
+    if (failCount === 0) {
+        showToast(`${successCount} elementi eliminati correttamente.`, 'success');
+    } else {
+        showToast(`Eliminati: ${successCount}. Falliti: ${failCount}.`, 'warning');
+    }
 }
