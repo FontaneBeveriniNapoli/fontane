@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fontane-beverini-v3.7.2'; // VERSIONE AGGIORNATA
+const CACHE_NAME = 'fontane-beverini-v3.7.3'; // VERSIONE AGGIORNATA
 const STATIC_CACHE = 'static-v3';
 const DYNAMIC_CACHE = 'dynamic-v2';
 
@@ -104,15 +104,10 @@ self.addEventListener('fetch', event => {
   
   const url = new URL(event.request.url);
   
-  if (url.protocol === 'chrome-extension:' || 
-      url.protocol === 'chrome:' || 
-      url.protocol === 'about:' ||
-      url.protocol === 'data:' ||
-      url.protocol === 'blob:' ||
-      url.protocol === 'file:') {
-    return;
-  }
-  
+  // Ignora schemi non supportati
+  if (url.protocol.startsWith('chrome') || url.protocol.startsWith('about') || url.protocol.startsWith('data')) return;
+
+  // Ignora API esterne (Firebase, Analytics, ecc.)
   if (url.href.includes('firebase') ||
       url.href.includes('nominatim') ||
       url.href.includes('gstatic.com') ||
@@ -121,92 +116,52 @@ self.addEventListener('fetch', event => {
       url.href.includes('/firestore')) {
     return fetch(event.request);
   }
-  
-  if (url.href.includes('tile.openstreetmap.org') || 
-      url.href.includes('cdn.rawgit.com')) {
+
+  // 1. GESTIONE IMMAGINI (Logica Cache on Demand)
+  // Include anche le tile della mappa e i marker se sono richiesti come immagini
+  if (event.request.destination === 'image') {
     event.respondWith(
-      caches.match(event.request)
-        .then(cachedResponse => {
-          if (cachedResponse) {
-            fetch(event.request)
-              .then(response => {
-                if (response.ok) {
-                  caches.open(DYNAMIC_CACHE)
-                    .then(cache => cache.put(event.request, response));
-                }
-              })
-              .catch(() => {}); 
-            return cachedResponse;
+      caches.match(event.request).then(cachedResponse => {
+        // A. Se è in cache, usala subito
+        if (cachedResponse) return cachedResponse;
+
+        // B. Se non è in cache, prova a scaricarla
+        return fetch(event.request).then(networkResponse => {
+          if (networkResponse && networkResponse.ok) {
+             // C. Se scaricata con successo, salvala in cache per il futuro
+             const responseToCache = networkResponse.clone();
+             caches.open(DYNAMIC_CACHE).then(cache => {
+               cache.put(event.request, responseToCache);
+             });
           }
-          
-          return fetch(event.request)
-            .then(response => {
-              if (response.ok) {
-                const clone = response.clone();
-                caches.open(DYNAMIC_CACHE)
-                  .then(cache => cache.put(event.request, clone));
-              }
-              return response;
-            });
-        })
+          return networkResponse;
+        }).catch(() => {
+          // D. SE SEI OFFLINE E NON È IN CACHE:
+          // Ritorniamo un errore (404) invece di un'immagine generica.
+          // Questo permette ad app.js di usare l'immagine di fallback specifica (Fontana vs Beverino).
+          return new Response(null, { status: 404, statusText: 'Not found' });
+        });
+      })
     );
     return;
   }
-  
-  event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        
-        return fetch(event.request)
-          .then(response => {
-            if (!response.ok) {
-              if (event.request.url.includes('index.html') || 
-                  event.request.headers.get('accept')?.includes('text/html')) {
-                return caches.match('./index.html');
-              }
-              return response;
-            }
-            
-            const responseToCache = response.clone();
-            caches.open(DYNAMIC_CACHE)
-              .then(cache => {
-                if (event.request.url.startsWith('http')) {
-                  return cache.put(event.request, responseToCache);
-                }
-              })
-              .catch(err => console.warn('[SW] Cache put error:', err));
-            
-            return response;
-          })
-          .catch(error => {
-            console.warn('[Service Worker] Fetch fallback:', error.message);
-            
-            if (event.request.headers.get('accept')?.includes('text/html')) {
-              return caches.match('./index.html');
-            }
-            
-            if (event.request.destination === 'image') {
-              if (event.request.url.includes('default-beverino.jpg')) {
-                return caches.match('./images/sfondo-home.jpg');
-              }
-              return caches.match('./images/sfondo-home.jpg');
-            }
 
-            if (event.request.destination === 'script') {
-                 return new Response('/* Offline script placeholder */', {
-                    headers: { 'Content-Type': 'application/javascript' }
-                 });
-            }
-            
-            return new Response('Modalità offline attiva. Riprova quando la connessione sarà disponibile.', {
-              status: 503,
-              headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-            });
-          });
-      })
+  // 2. GESTIONE ALTRE RISORSE (Cache First standard)
+  // Per HTML, CSS, JS, ecc.
+  event.respondWith(
+    caches.match(event.request).then(cachedResponse => {
+      if (cachedResponse) return cachedResponse;
+      
+      return fetch(event.request).then(response => {
+          // Cache dinamica opzionale per altre risorse
+          return response;
+      }).catch(() => {
+         // Fallback per HTML (se apri una pagina offline)
+         if (event.request.headers.get('accept').includes('text/html')) {
+            return caches.match('./index.html');
+         }
+      });
+    })
   );
 });
 
