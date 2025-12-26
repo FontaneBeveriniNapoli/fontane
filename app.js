@@ -1431,23 +1431,20 @@ function renderGridItems(container, items, type) {
         
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
         
-        // MODIFICA: loading="lazy" e fallback specifico su sfondo-home.jpg
+        // MODIFICA QUI: Contenitore immagine robusto con fallback visivo
         gridItem.innerHTML = `
             <div class="item-image-container">
                 <img src="${item.immagine || './images/sfondo-home.jpg'}" 
                      alt="${item.nome}" 
                      class="item-image" 
-                     loading="lazy"
-                     onerror="this.onerror=null; this.src='./images/sfondo-home.jpg';">
+                     onerror="this.style.display='none'; this.parentElement.classList.add('fallback-active'); this.parentElement.innerHTML += '<div class=\\'image-fallback\\'><i class=\\'fas fa-image\\'></i></div>';">
             </div>
             <div class="item-content">
                 <div class="item-name">${item.nome}</div>
                 <div class="item-address">${item.indirizzo}</div>
                 <div class="item-footer">
                     <span class="item-status status-${item.stato}">${getStatusText(item.stato)}</span>
-                    <span class="image-indicator ${hasCustomImage ? 'image-custom' : 'image-default'}">
-                        ${hasCustomImage ? '<i class="fas fa-check"></i>' : '<i class="fas fa-image"></i>'}
-                    </span>
+                    <span class="image-indicator ${hasCustomImage ? 'image-custom' : 'image-default'}">${hasCustomImage ? '<i class="fas fa-check"></i>' : '<i class="fas fa-image"></i>'}</span>
                 </div>
             </div>
         `;
@@ -1493,14 +1490,13 @@ function renderCompactItems(container, items, type) {
 
         const hasCustomImage = item.immagine && item.immagine.trim() !== '';
         
-        // MODIFICA: loading="lazy" e fallback specifico su default-beverino.jpg
+        // MODIFICA QUI: Struttura con contenitore immagine sicuro
         compactItem.innerHTML = `
             <div class="compact-item-image-container">
                 <img src="${item.immagine || './images/default-beverino.jpg'}"
                      alt="${item.nome}" 
                      class="compact-item-image"
-                     loading="lazy"
-                     onerror="this.onerror=null; this.src='./images/default-beverino.jpg';">
+                     onerror="this.style.display='none'; this.parentElement.classList.add('fallback-active'); this.parentElement.innerHTML += '<div class=\\'compact-image-fallback\\'><i class=\\'fas fa-faucet\\'></i></div>';">
             </div>
             <div class="compact-item-content">
                 <div class="compact-item-header">

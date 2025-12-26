@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fontane-beverini-v3.7.1'; // VERSIONE AGGIORNATA
+const CACHE_NAME = 'fontane-beverini-v3.7.2'; // VERSIONE AGGIORNATA
 const STATIC_CACHE = 'static-v3';
 const DYNAMIC_CACHE = 'dynamic-v2';
 
@@ -104,7 +104,6 @@ self.addEventListener('fetch', event => {
   
   const url = new URL(event.request.url);
   
-  // Ignora schemi non supportati
   if (url.protocol === 'chrome-extension:' || 
       url.protocol === 'chrome:' || 
       url.protocol === 'about:' ||
@@ -114,7 +113,6 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // Ignora chiamate API/Firebase/Analytics (gestite dal browser direttamente o SDK)
   if (url.href.includes('firebase') ||
       url.href.includes('nominatim') ||
       url.href.includes('gstatic.com') ||
@@ -123,40 +121,38 @@ self.addEventListener('fetch', event => {
       url.href.includes('/firestore')) {
     return fetch(event.request);
   }
-
-  // 1. GESTIONE SPECIALE IMMAGINI (Logica Cache-on-Demand)
-  if (event.request.destination === 'image') {
+  
+  if (url.href.includes('tile.openstreetmap.org') || 
+      url.href.includes('cdn.rawgit.com')) {
     event.respondWith(
-      caches.match(event.request).then(cachedResponse => {
-        // A. Se è in cache (l'hai già vista), usala subito
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-
-        // B. Se non è in cache, prova a scaricarla dalla rete
-        return fetch(event.request).then(networkResponse => {
-          if (networkResponse && networkResponse.ok) {
-             // C. Se il download riesce, SALVALA in cache per il futuro (offline)
-             const responseToCache = networkResponse.clone();
-             caches.open(DYNAMIC_CACHE).then(cache => {
-               cache.put(event.request, responseToCache);
-             });
+      caches.match(event.request)
+        .then(cachedResponse => {
+          if (cachedResponse) {
+            fetch(event.request)
+              .then(response => {
+                if (response.ok) {
+                  caches.open(DYNAMIC_CACHE)
+                    .then(cache => cache.put(event.request, response));
+                }
+              })
+              .catch(() => {}); 
+            return cachedResponse;
           }
-          return networkResponse;
-        }).catch(() => {
-          // D. SE SEI OFFLINE E NON È IN CACHE:
-          // Ritorniamo un errore (404 o null) invece di un'immagine generica.
-          // Questo farà scattare l'evento 'onerror' nel tag <img> in app.js,
-          // che a quel punto deciderà quale immagine di default mostrare (Fontana o Beverino).
-          return new Response(null, { status: 404, statusText: 'Not found in cache' });
-        });
-      })
+          
+          return fetch(event.request)
+            .then(response => {
+              if (response.ok) {
+                const clone = response.clone();
+                caches.open(DYNAMIC_CACHE)
+                  .then(cache => cache.put(event.request, clone));
+              }
+              return response;
+            });
+        })
     );
     return;
   }
   
-  // 2. GESTIONE ALTRE RISORSE STATICHE (Maps, Script, CSS, HTML)
-  // Cache-First strategy standard
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {
@@ -166,7 +162,6 @@ self.addEventListener('fetch', event => {
         
         return fetch(event.request)
           .then(response => {
-            // Se non è valida, prova a ritornare l'index.html (SPA routing)
             if (!response.ok) {
               if (event.request.url.includes('index.html') || 
                   event.request.headers.get('accept')?.includes('text/html')) {
@@ -175,7 +170,6 @@ self.addEventListener('fetch', event => {
               return response;
             }
             
-            // Cache dinamica per altre risorse http (non esterne se non voluto)
             const responseToCache = response.clone();
             caches.open(DYNAMIC_CACHE)
               .then(cache => {
@@ -188,11 +182,29 @@ self.addEventListener('fetch', event => {
             return response;
           })
           .catch(error => {
-            // Fallback Offline Generico
+            console.warn('[Service Worker] Fetch fallback:', error.message);
+            
             if (event.request.headers.get('accept')?.includes('text/html')) {
               return caches.match('./index.html');
             }
-            return new Response('Offline', { status: 503, statusText: 'Offline' });
+            
+            if (event.request.destination === 'image') {
+              if (event.request.url.includes('default-beverino.jpg')) {
+                return caches.match('./images/sfondo-home.jpg');
+              }
+              return caches.match('./images/sfondo-home.jpg');
+            }
+
+            if (event.request.destination === 'script') {
+                 return new Response('/* Offline script placeholder */', {
+                    headers: { 'Content-Type': 'application/javascript' }
+                 });
+            }
+            
+            return new Response('Modalità offline attiva. Riprova quando la connessione sarà disponibile.', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+            });
           });
       })
   );
