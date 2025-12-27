@@ -122,7 +122,7 @@
         <p style="color: #6b7280; font-size: 1rem; max-width: 300px; margin-bottom: 30px; line-height: 1.5;">
             Stiamo aggiornando il sistema per offrirti un servizio migliore. Torneremo online a breve.
         </p>
-        <button onclick="document.getElementById('admin-auth').style.display = 'flex'" style="background: #f3f4f6; border: none; padding: 10px 20px; border-radius: 50px; color: #9ca3af; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+        <button onclick="const auth=document.getElementById('admin-auth'); auth.style.display='flex'; auth.style.zIndex='100000';" style="background: #f3f4f6; border: none; padding: 10px 20px; border-radius: 50px; color: #9ca3af; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
             <i class="fas fa-lock"></i> Area Riservata
         </button>
     </div>
