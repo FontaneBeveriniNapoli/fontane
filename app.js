@@ -1,3 +1,118 @@
+// ==========================================
+// SISTEMA CONTROLLO REMOTO (MANUTENZIONE & PRIVACY)
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    // Avvia il "radar" che ascolta i comandi da Firebase
+    initRemoteControl();
+});
+
+function initRemoteControl() {
+    // Aspetta che Firebase sia pronto
+    if (!window.db || !window.onSnapshot) {
+        setTimeout(initRemoteControl, 500);
+        return;
+    }
+
+    const configRef = window.doc(window.db, "config", "general_settings");
+    
+    // ASCOLTO IN TEMPO REALE
+    window.onSnapshot(configRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const isAdmin = localStorage.getItem('abc_admin_logged') === 'true';
+
+            // 1. GESTIONE MANUTENZIONE
+            const isMaintenance = data.maintenanceMode === true;
+            
+            // Aggiorna interruttore admin
+            const maintBtn = document.getElementById('global-maintenance-toggle');
+            if (maintBtn) maintBtn.checked = isMaintenance;
+
+            // Se manutenzione attiva E non sono admin -> BLOCCA
+            const maintenanceScreen = document.getElementById('maintenance-mode');
+            if (maintenanceScreen) {
+                if (isMaintenance && !isAdmin) {
+                    maintenanceScreen.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    maintenanceScreen.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            }
+
+            // 2. GESTIONE PRIVACY (KILL SWITCH)
+            const isTrackingAllowed = data.analyticsEnabled !== false; 
+            
+            // Aggiorna interruttore admin
+            const privacyBtn = document.getElementById('global-privacy-toggle');
+            const privacyText = document.getElementById('privacy-status-text');
+            if (privacyBtn) privacyBtn.checked = isTrackingAllowed;
+            
+            if (window.firebaseAnalytics && window.setAnalyticsCollectionEnabled) {
+                if (isTrackingAllowed) {
+                    window.setAnalyticsCollectionEnabled(window.firebaseAnalytics, true);
+                    if(privacyText) {
+                        privacyText.textContent = "✅ Tracciamento ATTIVO";
+                        privacyText.style.color = "#166534";
+                    }
+                } else {
+                    window.setAnalyticsCollectionEnabled(window.firebaseAnalytics, false);
+                    console.warn("🚫 ANALYTICS DISATTIVATO DA REMOTO");
+                    if(privacyText) {
+                        privacyText.textContent = "🛡️ PROTEZIONE ATTIVA (No Dati)";
+                        privacyText.style.color = "#ef4444";
+                    }
+                }
+            }
+        }
+    });
+}
+
+// --- FUNZIONI PER I PULSANTI ADMIN ---
+
+// Toggle Manutenzione
+async function toggleGlobalMaintenance(checkbox) {
+    if (currentUserRole !== 'admin') { checkbox.checked = !checkbox.checked; return; }
+    
+    const newState = checkbox.checked;
+    if (confirm(newState ? "🔴 BLOCCARE L'APP A TUTTI GLI UTENTI?" : "🟢 RIAPRIRE L'APP?")) {
+        await updateConfig('maintenanceMode', newState);
+        showToast(newState ? "Manutenzione ATTIVATA" : "Manutenzione DISATTIVATA", "warning");
+    } else {
+        checkbox.checked = !newState;
+    }
+}
+
+// Toggle Privacy (Analytics)
+async function toggleGlobalAnalytics(checkbox) {
+    if (currentUserRole !== 'admin') { checkbox.checked = !checkbox.checked; return; }
+    
+    const newState = checkbox.checked;
+    const msg = newState 
+        ? "⚠️ Stai riattivando il tracciamento dati." 
+        : "🛡️ Stai per DISABILITARE Analytics per tutti.";
+
+    if (confirm(msg)) {
+        await updateConfig('analyticsEnabled', newState);
+        showToast(newState ? "Analytics ATTIVATO" : "Analytics DISATTIVATO", "success");
+    } else {
+        checkbox.checked = !newState;
+    }
+}
+
+// Helper per salvare su Firebase
+async function updateConfig(key, value) {
+    try {
+        const configRef = window.doc(window.db, "config", "general_settings");
+        await window.setDoc(configRef, { 
+            [key]: value,
+            lastUpdate: new Date().toISOString()
+        }, { merge: true });
+    } catch (e) {
+        console.error(e);
+        showToast("Errore di connessione", "error");
+    }
+}
 // ============================================
 // SERVICE WORKER FUNCTIONS - VERSIONE CORRETTA
 // ============================================
@@ -1054,14 +1169,24 @@ async function checkAdminAuth() {
         const userCredential = await window.firebaseSignIn(window.auth, email, password);
         isAdminAuthenticated = true;
         
-        // 2. RECUPERA LA LISTA DEI CAPI DAL DATABASE (Invece che dal codice)
+        // --- BLOCCO SBLOCCO MANUTENZIONE ---
+        localStorage.setItem('abc_admin_logged', 'true'); // Salva il flag Admin
+        
+        const maintScreen = document.getElementById('maintenance-mode');
+        if (maintScreen) maintScreen.style.display = 'none'; // Nascondi blocco
+        
+        document.body.style.overflow = 'auto'; // Riattiva scroll
+        initRemoteControl(); // Forza aggiornamento controlli
+        // -----------------------------------
+
+        // 2. RECUPERA LA LISTA DEI CAPI DAL DATABASE
         let isSuperAdmin = false;
         
         try {
-            const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-            // Cerca il documento "ruoli" nella collezione "impostazioni"
-            const docRef = doc(window.db, "impostazioni", "ruoli");
-            const docSnap = await getDoc(docRef);
+            // NOTA: Usiamo window.doc e window.getDoc perché li abbiamo caricati in index.html
+            // È più veloce e non richiede un nuovo import
+            const docRef = window.doc(window.db, "impostazioni", "ruoli");
+            const docSnap = await window.getDoc(docRef);
             
             if (docSnap.exists()) {
                 const listaCapi = docSnap.data().super_admins || [];
@@ -1076,30 +1201,45 @@ async function checkAdminAuth() {
 
         // 3. Assegna il ruolo
         if (isSuperAdmin) {
-            currentUserRole = 'admin'; 
+            currentUserRole = 'admin'; // O 'super_admin' se preferisci distinguerli
             showToast('Benvenuto Amministratore (Accesso Completo)', 'success');
         } else {
-            currentUserRole = 'editor'; 
+            currentUserRole = 'editor'; // O 'admin' semplice
             showToast('Benvenuto Operatore (Accesso Modifica)', 'info');
         }
         
         closeAdminAuth();
-        showAdminPanel();
+        // Apre il pannello admin corretto (assicurati che questa funzione esista o usa openAdminPanel)
+        if (typeof showAdminPanel === 'function') {
+            showAdminPanel();
+        } else if (typeof openAdminPanel === 'function') {
+            openAdminPanel();
+        } else {
+            document.getElementById('admin-panel').classList.add('active');
+        }
         
         if (adminAuthTimeout) {
             clearTimeout(adminAuthTimeout);
         }
+        
+        // Timeout sessione 30 minuti
         adminAuthTimeout = setTimeout(() => {
             isAdminAuthenticated = false;
             currentUserRole = null;
+            localStorage.removeItem('abc_admin_logged'); // Rimuovi anche il flag locale
             showToast('Sessione amministratore scaduta', 'info');
-            closeAdminPanel();
+            
+            if (typeof closeAdminPanel === 'function') closeAdminPanel();
+            
+            // Ricarica per riattivare eventuali blocchi manutenzione
+            window.location.reload();
         }, 30 * 60 * 1000);
         
         logActivity(`Accesso effettuato come ${currentUserRole}`);
         
     } catch (error) {
         errorElement.style.display = 'block';
+        errorElement.textContent = "Email o password errati";
         document.getElementById('admin-password').value = '';
         document.getElementById('admin-password').focus();
         console.error('Errore autenticazione:', error);
@@ -1143,6 +1283,11 @@ function closeAdminPanel() {
 function logoutAdmin() {
     isAdminAuthenticated = false;
     currentUserRole = null; // Reset ruolo
+    
+    // --- NUOVO: Rimuove il "pass" per la manutenzione ---
+    localStorage.removeItem('abc_admin_logged');
+    // ----------------------------------------------------
+
     if (adminAuthTimeout) {
         clearTimeout(adminAuthTimeout);
         adminAuthTimeout = null;
@@ -1150,6 +1295,10 @@ function logoutAdmin() {
     closeAdminPanel();
     showToast('Logout amministratore effettuato', 'success');
     logActivity('Logout amministratore');
+
+    // --- NUOVO: Ricarica la pagina per riapplicare eventuali blocchi ---
+    // Diamo 1 secondo per leggere il toast di conferma
+    setTimeout(() => window.location.reload(), 1000);
 }
 
 // Navigation and Screen Management

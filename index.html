@@ -48,15 +48,6 @@
           href="./images/icona-avvio-splash.png"
           media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
     
-    <meta name="theme-color" content="#3b82f6">
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ABC Napoli F&B">
-    
-    <meta name="msapplication-TileColor" content="#3b82f6">
-    <meta name="msapplication-TileImage" content="./images/icona-avvio-144.png">
-    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
@@ -67,9 +58,11 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        // Importiamo onSnapshot per il tempo reale
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+        // Importiamo setAnalyticsCollectionEnabled per il "Kill Switch" privacy
+        import { getAnalytics, setAnalyticsCollectionEnabled } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyBvDfxm-LSAcu0NwtJ8DYxxrjY-83LlLPU",
@@ -81,17 +74,23 @@
             measurementId: "G-DPEC2SNGDM"
         };
         
-        // Inizializza Firebase
         const app = initializeApp(firebaseConfig);
         
-        // Inizializza i servizi Firebase
+        // ESPORTIAMO TUTTO A LIVELLO GLOBALE (WINDOW) per usarlo in app.js
         window.db = getFirestore(app);
         window.auth = getAuth(app);
         window.firebaseAnalytics = getAnalytics(app);
         window.firebaseSignIn = signInWithEmailAndPassword;
         window.app = app;
+
+        // Esportiamo le funzioni Firestore e Analytics
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+        window.onSnapshot = onSnapshot;
+        window.setAnalyticsCollectionEnabled = setAnalyticsCollectionEnabled;
         
-        console.log('Firebase inizializzato con Analytics');
+        console.log('Firebase inizializzato con Remote Control System');
     </script>
     <link rel="stylesheet" href="./style.css">
 
@@ -115,8 +114,18 @@
             });
         });
     </script>
-    </head>
+</head>
 <body>
+    <div id="maintenance-mode" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
+        <img src="./images/logo-app.png" alt="Logo" style="width: 100px; margin-bottom: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+        <h1 style="color: #1f2937; margin-bottom: 10px; font-size: 1.5rem;">Sito in Manutenzione</h1>
+        <p style="color: #6b7280; font-size: 1rem; max-width: 300px; margin-bottom: 30px; line-height: 1.5;">
+            Stiamo aggiornando il sistema per offrirti un servizio migliore. Torneremo online a breve.
+        </p>
+        <button onclick="document.getElementById('admin-auth').style.display = 'flex'" style="background: #f3f4f6; border: none; padding: 10px 20px; border-radius: 50px; color: #9ca3af; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+            <i class="fas fa-lock"></i> Area Riservata
+        </button>
+    </div>
     <div id="splash-screen">
         <div class="splash-container">
             <img src="./images/icona-avvio-splash.png" alt="ABC Napoli F&B" class="splash-image">
@@ -739,74 +748,53 @@
             </div>
 
             <div class="admin-tab-content" id="config-admin">
+                <div class="config-section" style="border: 2px solid #ef4444; background: #fff1f2; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+                    <h4 style="color: #be123c; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-size: 1.1rem;">
+                        <i class="fas fa-satellite-dish"></i> Centro di Controllo Remoto
+                    </h4>
+                    
+                    <div class="config-item" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #fecdd3;">
+                        <div>
+                            <label style="font-weight: bold; color: #881337; font-size: 1rem;">Modalità Manutenzione</label>
+                            <p style="font-size: 0.85rem; color: #9f1239; margin-top: 4px;">Blocca l'app a tutti (tranne Admin).</p>
+                        </div>
+                        <label class="switch" style="position: relative; display: inline-block; width: 60px; height: 34px;">
+                            <input type="checkbox" id="global-maintenance-toggle" onchange="toggleGlobalMaintenance(this)">
+                            <span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+                            <style>.slider:before {position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%;} input:checked + .slider {background-color: #ef4444;} input:checked + .slider:before {transform: translateX(26px);}</style>
+                        </label>
+                    </div>
+
+                    <div class="config-item" style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px;">
+                        <div>
+                            <label style="font-weight: bold; color: #1e3a8a; font-size: 1rem;">Analytics & Privacy</label>
+                            <p style="font-size: 0.85rem; color: #1e40af; margin-top: 4px;">
+                                Stato: <span id="privacy-status-text" style="font-weight: bold;">Caricamento...</span>
+                            </p>
+                        </div>
+                        <label class="switch" style="position: relative; display: inline-block; width: 60px; height: 34px;">
+                            <input type="checkbox" id="global-privacy-toggle" checked onchange="toggleGlobalAnalytics(this)">
+                            <span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+                            <style>input:checked + .slider {background-color: #3b82f6;}</style>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="backup-section">
-                    <h4>Sicurezza Amministratore</h4>
-                    <div class="sync-actions">
-                        <button class="admin-btn secondary" onclick="logoutAdmin()">
-                            <i class="fas fa-sign-out-alt"></i> Logout Amministratore
-                        </button>
-                    </div>
+                    <h4>Sicurezza Account</h4>
+                    <button class="admin-btn secondary" onclick="logoutAdmin()">
+                        <i class="fas fa-sign-out-alt"></i> Logout Amministratore
+                    </button>
                 </div>
-
+                
                 <div class="import-export-section">
-                    <h4>Import/Export Dati in Excel</h4>
-                    <div class="export-options">
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('fontane')">
-                            <i class="fas fa-file-export"></i> Esporta Fontane
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('beverini')">
-                            <i class="fas fa-file-export"></i> Esporta Beverini
-                        </button>
-                        <button class="admin-btn secondary" onclick="exportDataToExcel('news')">
-                            <i class="fas fa-file-export"></i> Esporta News
-                        </button>
-                        <button class="admin-btn primary" onclick="exportAllDataToExcel()">
-                            <i class="fas fa-file-archive"></i> Esporta Tutto
-                        </button>
-                    </div>
-
-                    <div class="import-options">
-                        <input type="file" id="import-all-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileImport('all', this.files)">
-                        <button class="admin-btn secondary" onclick="document.getElementById('import-all-file').click()">
-                            <i class="fas fa-file-import"></i> Importa Tutto
-                        </button>
-                    </div>
-                </div>
-
-                <div class="config-section">
-                    <h4>Configurazione Analytics</h4>
-                    <div class="config-item">
-                        <label for="analytics-enabled">Tracciamento Attivo:</label>
-                        <input type="checkbox" id="analytics-enabled" checked onchange="toggleAnalytics(this.checked)">
-                    </div>
-                    <div class="config-item">
-                        <label for="error-logging">Log Errori:</label>
-                        <input type="checkbox" id="error-logging" checked>
-                    </div>
-                    <div class="config-item">
-                        <label for="performance-tracking">Tracciamento Performance:</label>
-                        <input type="checkbox" id="performance-tracking" checked>
-                    </div>
-                    <div class="config-status" id="config-status"></div>
-                </div>
-
-                <div class="config-section">
-                    <h4>Configurazione Offline</h4>
-                    <div class="config-item">
-                        <label for="offline-mode">Modalità Offline:</label>
-                        <input type="checkbox" id="offline-mode" checked>
-                    </div>
-                    <div class="config-item">
-                        <label for="auto-sync">Sincronizzazione Automatica:</label>
-                        <input type="checkbox" id="auto-sync" checked>
-                    </div>
-                    <div class="config-item">
-                        <label for="sync-interval">Intervallo Sync (min):</label>
-                        <input type="number" id="sync-interval" value="5" min="1" max="60">
-                    </div>
+                    <h4>Export Dati Completo</h4>
+                    <button class="admin-btn primary" onclick="exportAllDataToExcel()">
+                        <i class="fas fa-file-excel"></i> Esporta Tutto in Excel
+                    </button>
                 </div>
             </div>
-        </div>
+            </div>
     </div>
 
     <div class="app-container">
@@ -1171,100 +1159,54 @@
     <script src="./analytics.js" defer></script>
     
     <script>
-        // ✅ SERVICE WORKER REGISTRATION - VERSIONE ROBUSTA PER GITHUB PAGES
+        // SERVICE WORKER REGISTRATION
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 const swUrl = './sw.js';
-                
-                // Prima verifica se il file esiste
                 fetch(swUrl, { mode: 'no-cors' })
                   .then(response => {
-                      // Usa no-cors mode per evitare CORS issues su GitHub Pages
                       return navigator.serviceWorker.register(swUrl)
                           .then(registration => {
-                              console.log('✅ Service Worker registrato con successo:', registration.scope);
-                              
-                              // Controlla aggiornamenti
+                              console.log('✅ Service Worker registrato:', registration.scope);
                               registration.addEventListener('updatefound', () => {
                                   const newWorker = registration.installing;
-                                  console.log('🔄 Nuova versione del Service Worker trovata');
-                                  
                                   newWorker.addEventListener('statechange', () => {
                                       if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                          console.log('📦 Nuova versione pronta per l\'aggiornamento');
                                           showToast('Nuova versione disponibile! Ricarica la pagina.', 'info');
                                       }
                                   });
                               });
-                              
                               return registration;
                           });
                   })
                   .catch(error => {
-                      console.warn('⚠️ Registrazione Service Worker fallita:', error.message);
-                      // Non bloccare l'app se il Service Worker fallisce
-                      showToast('Modalità offline limitata', 'warning');
+                      console.warn('⚠️ Registrazione SW fallita:', error.message);
                   });
             });
-        } else {
-            console.log('ℹ️ Service Worker non supportato dal browser');
         }
         
-        // Verifica installazione PWA
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('📱 PWA installabile rilevata');
             e.preventDefault();
             window.deferredPrompt = e;
         });
         
-        // ✅ FUNZIONI PER IL PANNELLO ANALYTICS
+        // FUNZIONI ANALYTICS
         function refreshAnalyticsDashboard() {
             if (window.Analytics) {
                 const summary = window.Analytics.getAnalyticsSummary();
-                
-                // Aggiorna statistiche
                 document.getElementById('analytics-session-count').textContent = summary.sessions.today || '0';
                 document.getElementById('analytics-events-count').textContent = summary.events.today || '0';
                 document.getElementById('analytics-pageviews-count').textContent = summary.pageViews.today || '0';
                 document.getElementById('analytics-errors-count').textContent = summary.errors.today || '0';
-                
-                // Aggiorna performance
-                document.getElementById('metric-page-load').textContent = 
-                    Math.round(summary.metrics.performance.average || 0) + 'ms';
-                document.getElementById('metric-image-load').textContent = 
-                    Math.round(summary.metrics.performance.imageLoad || 0) + 'ms';
+                document.getElementById('metric-page-load').textContent = Math.round(summary.metrics.performance.average || 0) + 'ms';
+                document.getElementById('metric-image-load').textContent = Math.round(summary.metrics.performance.imageLoad || 0) + 'ms';
                 document.getElementById('metric-data-load').textContent = '0ms';
-                
-                // Aggiorna storage
                 document.getElementById('storage-events').textContent = summary.events.total || '0';
                 document.getElementById('storage-errors').textContent = summary.errors.total || '0';
-                document.getElementById('storage-used').textContent = 
-                    Math.round(summary.metrics.storage.eventsSize / 1024) + ' KB';
+                document.getElementById('storage-used').textContent = Math.round(summary.metrics.storage.eventsSize / 1024) + ' KB';
+                document.getElementById('current-session-id').textContent = summary.sessions.current.id.substring(0, 15) + '...';
+                document.getElementById('current-user-id').textContent = summary.user.id.substring(0, 15) + '...';
                 
-                // Aggiorna session info
-                document.getElementById('current-session-id').textContent = 
-                    summary.sessions.current.id.substring(0, 15) + '...';
-                document.getElementById('current-user-id').textContent = 
-                    summary.user.id.substring(0, 15) + '...';
-                
-                // Aggiorna sync info
-                const lastSync = localStorage.getItem('analytics_last_sync');
-                if (lastSync) {
-                    const lastSyncDate = new Date(lastSync);
-                    const now = new Date();
-                    const diffMinutes = Math.floor((now - lastSyncDate) / (1000 * 60));
-                    
-                    if (diffMinutes < 1) {
-                        document.getElementById('last-sync-time').textContent = 'Poco fa';
-                    } else if (diffMinutes < 60) {
-                        document.getElementById('last-sync-time').textContent = `${diffMinutes} minuti fa`;
-                    } else {
-                        document.getElementById('last-sync-time').textContent = 
-                            lastSyncDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-                    }
-                }
-                
-                // Aggiorna status
                 const statusIndicator = document.getElementById('analytics-status-indicator');
                 const statusText = document.getElementById('analytics-status-text');
                 
@@ -1280,15 +1222,12 @@
                     statusText.className = 'status-inactive';
                 }
                 
-                // Aggiorna debug info
                 document.getElementById('debug-initialized').textContent = window.Analytics.isInitialized ? 'Si' : 'No';
                 document.getElementById('debug-firebase').textContent = window.firebaseAnalytics ? 'Si' : 'No';
                 document.getElementById('debug-pwa').textContent = window.matchMedia('(display-mode: standalone)').matches ? 'Si' : 'No';
                 document.getElementById('debug-online').textContent = navigator.onLine ? 'Si' : 'No';
                 
                 showToast('Dashboard analytics aggiornata', 'success');
-                
-                // Traccia l'evento
                 window.Analytics.trackEvent('analytics', 'dashboard_refreshed');
             } else {
                 showToast('Analytics non inizializzato', 'error');
@@ -1300,13 +1239,11 @@
                 const filename = window.Analytics.exportAnalyticsData();
                 showToast(`Dati analytics esportati in ${filename}`, 'success');
                 window.Analytics.trackEvent('analytics', 'data_exported');
-            } else {
-                showToast('Analytics non inizializzato', 'error');
             }
         }
         
         function resetAnalyticsData() {
-            if (confirm('Sei sicuro di voler resettare tutti i dati analytics? Questa azione non può essere annullata.')) {
+            if (confirm('Sei sicuro di voler resettare tutti i dati analytics?')) {
                 if (window.Analytics) {
                     window.Analytics.resetUserData();
                     refreshAnalyticsDashboard();
@@ -1320,27 +1257,6 @@
             if (window.Analytics) {
                 const newState = !window.Analytics.config.trackingEnabled;
                 window.Analytics.setTrackingEnabled(newState);
-                
-                const btn = document.querySelector('[onclick="toggleAnalyticsTracking()"]');
-                if (newState) {
-                    btn.innerHTML = '<i class="fas fa-toggle-on"></i> Attiva/Disattiva';
-                    btn.classList.add('primary');
-                    btn.classList.remove('secondary');
-                } else {
-                    btn.innerHTML = '<i class="fas fa-toggle-off"></i> Attiva/Disattiva';
-                    btn.classList.add('secondary');
-                    btn.classList.remove('primary');
-                }
-                
-                showToast(`Analytics ${newState ? 'attivato' : 'disattivato'}`, 'info');
-                refreshAnalyticsDashboard();
-            }
-        }
-        
-        function toggleAnalytics(enabled) {
-            if (window.Analytics) {
-                window.Analytics.setTrackingEnabled(enabled);
-                showToast(`Tracciamento analytics ${enabled ? 'attivato' : 'disattivato'}`, 'success');
                 refreshAnalyticsDashboard();
             }
         }
@@ -1351,7 +1267,6 @@
                 localStorage.setItem('analytics_last_sync', new Date().toISOString());
                 refreshAnalyticsDashboard();
                 showToast('Sync analytics forzato', 'info');
-                window.Analytics.trackEvent('analytics', 'force_sync');
             }
         }
         
@@ -1360,18 +1275,12 @@
                 localStorage.removeItem('analytics_errors');
                 refreshAnalyticsDashboard();
                 showToast('Errori cancellati', 'success');
-                if (window.Analytics) {
-                    window.Analytics.trackEvent('analytics', 'errors_cleared');
-                }
             }
         }
         
         function testAnalyticsEvent() {
             if (window.Analytics) {
-                window.Analytics.trackEvent('test', 'manual_event', 'Test manuale', 1, {
-                    test_mode: true,
-                    timestamp: new Date().toISOString()
-                });
+                window.Analytics.trackEvent('test', 'manual_event', 'Test manuale', 1, { test_mode: true });
                 showToast('Evento test registrato', 'info');
                 refreshAnalyticsDashboard();
             }
@@ -1380,12 +1289,7 @@
         function testAnalyticsError() {
             if (window.Analytics) {
                 const testError = new Error('Errore di test manuale');
-                testError.name = 'TestError';
-                testError.code = 'TEST_001';
-                
-                window.Analytics.trackError(testError, 'test_manual', 'low', {
-                    test_mode: true
-                });
+                window.Analytics.trackError(testError, 'test_manual', 'low', { test_mode: true });
                 showToast('Errore test registrato', 'info');
                 refreshAnalyticsDashboard();
             }
@@ -1400,14 +1304,12 @@
             }
         }
         
-        // Aggiorna automaticamente la dashboard quando si apre il tab
         document.querySelectorAll('.admin-tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const tabId = this.getAttribute('data-tab');
                 if (tabId === 'analytics-admin') {
                     setTimeout(() => {
                         refreshAnalyticsDashboard();
-                        // Crea grafico se necessario
                         setTimeout(createActivityChart, 500);
                     }, 100);
                 }
@@ -1417,30 +1319,17 @@
         function createActivityChart() {
             const canvas = document.getElementById('activity-chart');
             if (!canvas) return;
-            
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
-            
-            // Se il grafico esiste già, distruggilo
-            if (window.activityChart) {
-                window.activityChart.destroy();
-            }
-            
-            // Dati di esempio per il grafico
+            if (window.activityChart) window.activityChart.destroy();
             const labels = [];
             const data = [];
-            
-            // Genera dati per ultimi 7 giorni
             for (let i = 6; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
                 labels.push(date.toLocaleDateString('it-IT', { weekday: 'short' }));
-                
-                // Valore casuale per demo
                 data.push(Math.floor(Math.random() * 50) + 20);
             }
-            
-            // Crea grafico
             window.activityChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -1458,38 +1347,18 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            ticks: {
-                                stepSize: 10
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
+                        y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
+                        x: { grid: { display: false } }
                     }
                 }
             });
         }
         
-        // Inizializzazione quando la pagina è pronta
         document.addEventListener('DOMContentLoaded', function() {
-            // Carica analytics dashboard dopo un po'
             setTimeout(() => {
-                if (window.Analytics) {
-                    refreshAnalyticsDashboard();
-                }
+                if (window.Analytics) refreshAnalyticsDashboard();
             }, 2000);
         });
     </script>
